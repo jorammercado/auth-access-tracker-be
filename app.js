@@ -10,7 +10,7 @@ app.get("/", (req, res) => {
 })
 
 const usersController = require("./controllers/usersController")
-// app.use("/users", usersController)
+app.use("/users", usersController)
 
 app.get("*", (req, res) => {
     res.status(404).json({ success: false, data: { error: "Page not found." } })

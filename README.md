@@ -30,7 +30,7 @@ This repository contains the backend of the "User Authentication and Access Trac
 - [Contact](#contact)
 
 ## Deployed Server Access
-[Live Backend Server](https://dashboard.render.com/) *(place holder link)*
+[Live Backend Server](https://red-canary-takehome-be.onrender.com/) 
 
 ## GitHub Repositories
 - [FrontEnd](https://github.com/jorammercado/red-canary-takehome-fe)
