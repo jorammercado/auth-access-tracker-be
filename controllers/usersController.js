@@ -23,8 +23,7 @@ const {
 const users = express.Router()
 
 // login route
-// users.post("/login", checkEmail, checkPassword, async (req, res) => {
-users.post("/login", async (req, res) => {
+users.post("/login", checkEmail, checkPassword, async (req, res) => {
     let oneUser = await getOneUserByEmail(req.body)
     if (oneUser) {
         bcrypt.compare(req.body.password, oneUser.password).then((isMatch) => {
@@ -47,44 +46,42 @@ users.post("/login", async (req, res) => {
 })
 
 // sign up, create user route
-// users.post("/", checkUsername,
-//     checkEmail,
-//     checkPassword,
-//     checkUsernameExists,
-//     checkEmailExists, async (req, res) => {
-users.post("/", async (req, res) => {
-    const newUser = req.body
-    bcrypt.genSalt(10, async (err, salt) => {
-        bcrypt.hash(newUser.password, salt, async (err, hash) => {
-            if (err) throw err
-            newUser.password = hash
-            try {
-                newUser.profile_img = !newUser.profile_img ? "profile image" : newUser.profile_img
-                newUser.firstname = !newUser.firstname ? "unknown first name" : newUser.firstname
-                newUser.lastname = !newUser.lastname ? "unknown last name" : newUser.lastname
-                newUser.about = !newUser.about ? "about me" : newUser.about
-                newUser.dob = !newUser.dob ? "1/1/2024" : newUser.dob
-                let createdUser = await createUser(newUser)
-                if (createdUser.user_id) {
-                    createdUser.password = "hidden"
-                    res.status(200).json(createdUser)
+users.post("/", checkUsername,
+    checkEmail,
+    checkPassword,
+    checkUsernameExists,
+    checkEmailExists, async (req, res) => {
+        const newUser = req.body
+        bcrypt.genSalt(10, async (err, salt) => {
+            bcrypt.hash(newUser.password, salt, async (err, hash) => {
+                if (err) throw err
+                newUser.password = hash
+                try {
+                    newUser.profile_img = !newUser.profile_img ? "profile image" : newUser.profile_img
+                    newUser.firstname = !newUser.firstname ? "unknown first name" : newUser.firstname
+                    newUser.lastname = !newUser.lastname ? "unknown last name" : newUser.lastname
+                    newUser.about = !newUser.about ? "about me" : newUser.about
+                    newUser.dob = !newUser.dob ? "1/1/2024" : newUser.dob
+                    let createdUser = await createUser(newUser)
+                    if (createdUser.user_id) {
+                        createdUser.password = "hidden"
+                        res.status(200).json(createdUser)
+                    }
+                    else {
+                        res.status(400).json({
+                            error: `error creating user, sql-res:${createdUser.err}`
+                        })
+                    }
                 }
-                else {
-                    res.status(400).json({
-                        error: `error creating user, sql-res:${createdUser.err}`
-                    })
+                catch (error) {
+                    res.status(400).json({ error: "error creating user" })
                 }
-            }
-            catch (error) {
-                res.status(400).json({ error: "error creating user" })
-            }
+            })
         })
     })
-})
 
 // delete user route
-// users.delete("/:user_id", checkUserIndex, async (req, res) => {
-users.delete("/:user_id", async (req, res) => {
+users.delete("/:user_id", checkUserIndex, async (req, res) => {
     try {
         const { user_id } = req.params
         const deletedUser = await deleteUser(user_id)
@@ -102,11 +99,9 @@ users.delete("/:user_id", async (req, res) => {
 })
 
 // update user route
-// users.put("/:user_id", checkUserIndex,
-//     checkUsernameExistsOtherThanSelf,
-//     checkEmailExistsOtherThanSelf,
-//     async (req, res) => {
-users.put("/:user_id",
+users.put("/:user_id", checkUserIndex,
+    checkUsernameExistsOtherThanSelf,
+    checkEmailExistsOtherThanSelf,
     async (req, res) => {
         try {
             const { user_id } = req.params
