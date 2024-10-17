@@ -15,3 +15,20 @@ CREATE TABLE users (
     about TEXT DEFAULT 'about me',
     dob VARCHAR(20) DEFAULT '1/1/2024',
     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+
+CREATE TABLE login_attempts (
+    attempt_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id),
+    attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(50),
+    success BOOLEAN NOT NULL,
+    device_fingerprint TEXT
+);
+
+CREATE TABLE login_history (
+    history_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id),
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(50),
+    device_fingerprint TEXT
+);
