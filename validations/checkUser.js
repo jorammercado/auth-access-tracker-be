@@ -22,7 +22,7 @@ const checkUsernameExists = async (req, res, next) => {
 const checkUsernameExistsOtherThanSelf = async (req, res, next) => {
     const { user_id } = req.params
     const registeredUserByUserName = await getOneUserByUserName(req.body)
-    if (registeredUserByUserName.user_id === Number(user_id) || !registeredUserByUserName)
+    if (registeredUserByUserName?.user_id === Number(user_id) || !registeredUserByUserName)
         return next()
     else
         res.status(400).json({ error: "user already registered with this username" })
