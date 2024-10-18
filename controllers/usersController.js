@@ -28,7 +28,7 @@ users.post("/login", checkEmail, checkPassword, async (req, res) => {
     if (oneUser) {
         bcrypt.compare(req.body.password, oneUser.password).then((isMatch) => {
             if (isMatch) {
-                oneUser.password = "hidden"
+                oneUser.password = "***************"
                 res.status(200).json({ status: "Login Success", login: true, oneUser })
             }
             else {
