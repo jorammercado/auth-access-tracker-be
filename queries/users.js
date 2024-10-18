@@ -94,12 +94,12 @@ const deleteUser = async (user_id) => {
 
 const updateUser = async (user_id, user) => {
     try {
-        const { firstname, lastname, profile_img, about, dob } = user
+        const { firstname, lastname, profile_img, about, dob, username } = user
         const updatedUser = await db.one(
             `UPDATE users SET firstname=$1, lastname=$2, ` +
-            `profile_img=$3, about=$4, dob=$5 WHERE user_id=$6 ` +
+            `profile_img=$3, about=$4, dob=$5, username=$6 WHERE user_id=$7 ` +
             `RETURNING *`,
-            [firstname, lastname, profile_img, about, dob, user_id]
+            [firstname, lastname, profile_img, about, dob, username, user_id]
         )
         return updatedUser
     }
