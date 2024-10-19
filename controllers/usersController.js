@@ -24,6 +24,7 @@ const {
     checkUsernameValidity,
     checkDobFormat
 } = require("../validations/checkUser.js")
+const { setDefaultValues } = require("../middleware/utilityMiddleware.js")
 
 const users = express.Router()
 
@@ -38,7 +39,7 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
             }
             else {
                 res.status(400).json({
-                    error: "incorect password/email combo",
+                    error: "incorect password and/or email",
                     status: "Login Failure",
                     login: false
                 })
@@ -60,18 +61,14 @@ users.post("/", checkUsernameProvided,
     checkFirstnameLettersOnly,
     checkLastnameLettersOnly,
     checkUsernameValidity,
-    checkDobFormat, async (req, res) => {
+    checkDobFormat,
+    setDefaultValues, async (req, res) => {
         const newUser = req.body
         bcrypt.genSalt(10, async (err, salt) => {
             bcrypt.hash(newUser.password, salt, async (err, hash) => {
                 if (err) throw err
                 newUser.password = hash
                 try {
-                    newUser.profile_img = !newUser.profile_img ? "profile image" : newUser.profile_img
-                    newUser.firstname = !newUser.firstname ? "unknown first name" : newUser.firstname
-                    newUser.lastname = !newUser.lastname ? "unknown last name" : newUser.lastname
-                    newUser.about = !newUser.about ? "about me" : newUser.about
-                    newUser.dob = !newUser.dob ? "1/1/2024" : newUser.dob
                     let createdUser = await createUser(newUser)
                     if (createdUser.user_id) {
                         createdUser.password = "***************"
@@ -97,7 +94,7 @@ users.delete("/:user_id", checkUserIndex, async (req, res) => {
         const deletedUser = await deleteUser(user_id)
         if (deletedUser) {
             deletedUser.password = ""
-            res.status(200).json(deletedUser)
+            res.status(204).json(deletedUser)
         }
         else {
             res.status(404).json({ error: "user not found => not deleted" })
@@ -117,15 +114,11 @@ users.put("/:user_id", checkUserIndex,
     checkLastnameLettersOnly,
     checkUsernameValidity,
     checkDobFormat,
+    setDefaultValues,
     async (req, res) => {
         try {
             const { user_id } = req.params
             const userToUpdate = req.body
-            userToUpdate.profile_img = !userToUpdate.profile_img ? "profile image" : userToUpdate.profile_img
-            userToUpdate.firstname = !userToUpdate.firstname ? "unknown first name" : userToUpdate.firstname
-            userToUpdate.lastname = !userToUpdate.lastname ? "unknown last name" : userToUpdate.lastname
-            userToUpdate.about = !userToUpdate.about ? "about me" : userToUpdate.about
-            userToUpdate.dob = !userToUpdate.dob ? "00/00/0000" : userToUpdate.dob
             let updatedUser = await updateUser(user_id, userToUpdate)
             if (updatedUser.user_id) {
                 updatedUser.password = "hidden"
