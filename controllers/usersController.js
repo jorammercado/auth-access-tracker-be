@@ -10,9 +10,9 @@ const {
 } = require("../queries/users.js")
 
 const {
-    checkUsername,
-    checkEmail,
-    checkPassword,
+    checkUsernameProvided,
+    checkEmailProvided,
+    checkPasswordProvided,
     checkUserIndex,
     checkUsernameExists,
     checkEmailExists,
@@ -23,7 +23,7 @@ const {
 const users = express.Router()
 
 // login route
-users.post("/login", checkEmail, checkPassword, async (req, res) => {
+users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res) => {
     let oneUser = await getOneUserByEmail(req.body)
     if (oneUser) {
         bcrypt.compare(req.body.password, oneUser.password).then((isMatch) => {
@@ -46,9 +46,9 @@ users.post("/login", checkEmail, checkPassword, async (req, res) => {
 })
 
 // sign up, create user route
-users.post("/", checkUsername,
-    checkEmail,
-    checkPassword,
+users.post("/", checkUsernameProvided,
+    checkEmailProvided,
+    checkPasswordProvided,
     checkUsernameExists,
     checkEmailExists, async (req, res) => {
         const newUser = req.body

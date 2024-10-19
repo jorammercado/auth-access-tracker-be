@@ -2,7 +2,7 @@ const { getAllUsers,
     getOneUserByUserName,
     getOneUserByEmail } = require("../queries/users")
 
-const checkUsername = (req, res, next) => {
+const checkUsernameProvided = (req, res, next) => {
     if (req.body.username) {
         return next()
     } else {
@@ -28,7 +28,7 @@ const checkUsernameExistsOtherThanSelf = async (req, res, next) => {
         res.status(400).json({ error: "user already registered with this username" })
 }
 
-const checkEmail = (req, res, next) => {
+const checkEmailProvided = (req, res, next) => {
     if (req.body.email) {
         return next()
     } else {
@@ -54,7 +54,7 @@ const checkEmailExistsOtherThanSelf = async (req, res, next) => {
         res.status(400).json({ error: "user already registered with this username" })
 }
 
-const checkPassword = (req, res, next) => {
+const checkPasswordProvided = (req, res, next) => {
     if (req.body.password) {
         return next()
     } else {
@@ -89,9 +89,9 @@ const checkUserIndex = async (req, res, next) => {
 
 
 module.exports = {
-    checkUsername,
-    checkEmail,
-    checkPassword,
+    checkUsernameProvided,
+    checkEmailProvided,
+    checkPasswordProvided,
     checkUserIndex,
     checkValidUsername,
     checkUsernameExists,
