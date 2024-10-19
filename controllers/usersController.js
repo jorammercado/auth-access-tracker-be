@@ -21,7 +21,8 @@ const {
     checkEmailFormat,
     checkFirstnameLettersOnly,
     checkLastnameLettersOnly,
-    checkUsernameValidity
+    checkUsernameValidity,
+    checkDobFormat
 } = require("../validations/checkUser.js")
 
 const users = express.Router()
@@ -58,7 +59,8 @@ users.post("/", checkUsernameProvided,
     checkEmailFormat,
     checkFirstnameLettersOnly,
     checkLastnameLettersOnly,
-    checkUsernameValidity, async (req, res) => {
+    checkUsernameValidity,
+    checkDobFormat, async (req, res) => {
         const newUser = req.body
         bcrypt.genSalt(10, async (err, salt) => {
             bcrypt.hash(newUser.password, salt, async (err, hash) => {
@@ -114,6 +116,7 @@ users.put("/:user_id", checkUserIndex,
     checkFirstnameLettersOnly,
     checkLastnameLettersOnly,
     checkUsernameValidity,
+    checkDobFormat,
     async (req, res) => {
         try {
             const { user_id } = req.params

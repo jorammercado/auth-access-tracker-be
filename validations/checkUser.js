@@ -136,8 +136,18 @@ const checkUsernameValidity = (req, res, next) => {
     return next()
 }
 
+const checkDobFormat = (req, res, next) => {
+    const dobRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+    if (!req.body.dob || dobRegex.test(req.body.dob)) {
+        return next()
+    } else {
+        res.status(400).json({ error: "Date of birth must be in the format ##/##/#### or #/#/####" })
+    }
+}
+
 
 module.exports = {
+    checkDobFormat,
     checkUsernameValidity,
     checkLastnameLettersOnly,
     checkFirstnameLettersOnly,
