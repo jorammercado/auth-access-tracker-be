@@ -88,7 +88,7 @@ const checkUserIndex = async (req, res, next) => {
 
 const checkEmailFormat = (req, res, next) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    if (emailRegex.test(req.body.email)) {
+    if (emailRegex.test(req.body?.email)) {
         return next()
     } else {
         res.status(400).json({ error: "Invalid email format!" })
@@ -97,7 +97,7 @@ const checkEmailFormat = (req, res, next) => {
 
 const checkFirstnameLettersOnly = (req, res, next) => {
     const nameRegex = /^[a-zA-Z]+$/
-    if (!req.body.firstname || nameRegex.test(req.body.firstname)) {
+    if (!req.body?.firstname || nameRegex.test(req.body?.firstname)) {
         return next()
     } else {
         res.status(400).json({ error: "Firstname must contain only letters!" })
@@ -106,15 +106,39 @@ const checkFirstnameLettersOnly = (req, res, next) => {
 
 const checkLastnameLettersOnly = (req, res, next) => {
     const nameRegex = /^[a-zA-Z]+$/
-    if (!req.body.lastname || nameRegex.test(req.body.lastname)) {
+    if (!req.body?.lastname || nameRegex.test(req.body?.lastname)) {
         return next()
     } else {
         res.status(400).json({ error: "Lastname must contain only letters!" })
     }
 }
 
+const checkUsernameValidity = (req, res, next) => {
+    const { username, firstname, lastname, dob, email } = req.body
+
+    if (firstname?.toLowerCase() + lastname?.toLowerCase() === username?.toLowerCase())
+        return res.status(400).json({ error: "Username cannot be the same as your firstname and lastname combined!" })
+
+    if (dob && username === dob)
+        return res.status(400).json({ error: "Username cannot be your date of birth!" })
+
+    if (email && username?.toLowerCase() === email?.toLowerCase())
+        return res.status(400).json({ error: "Username cannot be your email!" })
+
+    const reservedUsernames = ['admin', 'root', 'superuser', 'administrator', 'support',
+        'help', 'moderator', 'system', 'guest', 'owner', 'master', 'test', 'user', 'manager']
+    if (reservedUsernames.includes(username?.toLowerCase()))
+        return res.status(400).json({ error: "Username cannot be a reserved name!" })
+
+    if (username.length < 3) 
+        return res.status(400).json({ error: "Username must be at least 3 characters long!" })
+    
+    return next()
+}
+
 
 module.exports = {
+    checkUsernameValidity,
     checkLastnameLettersOnly,
     checkFirstnameLettersOnly,
     checkEmailFormat,
