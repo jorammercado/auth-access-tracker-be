@@ -86,9 +86,18 @@ const checkUserIndex = async (req, res, next) => {
         })
 }
 
+const checkEmailFormat = (req, res, next) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (emailRegex.test(req.body.email)) {
+        return next()
+    } else {
+        res.status(400).json({ error: "Invalid email format!" })
+    }
+}
 
 
 module.exports = {
+    checkEmailFormat,
     checkUsernameProvided,
     checkEmailProvided,
     checkPasswordProvided,

@@ -17,13 +17,14 @@ const {
     checkUsernameExists,
     checkEmailExists,
     checkUsernameExistsOtherThanSelf,
-    checkEmailExistsOtherThanSelf
+    checkEmailExistsOtherThanSelf,
+    checkEmailFormat
 } = require("../validations/checkUser.js")
 
 const users = express.Router()
 
 // login route
-users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res) => {
+users.post("/login", checkEmailProvided, checkPasswordProvided, checkEmailFormat, async (req, res) => {
     let oneUser = await getOneUserByEmail(req.body)
     if (oneUser) {
         bcrypt.compare(req.body.password, oneUser.password).then((isMatch) => {
@@ -50,7 +51,8 @@ users.post("/", checkUsernameProvided,
     checkEmailProvided,
     checkPasswordProvided,
     checkUsernameExists,
-    checkEmailExists, async (req, res) => {
+    checkEmailExists,
+    checkEmailFormat, async (req, res) => {
         const newUser = req.body
         bcrypt.genSalt(10, async (err, salt) => {
             bcrypt.hash(newUser.password, salt, async (err, hash) => {
@@ -102,6 +104,7 @@ users.delete("/:user_id", checkUserIndex, async (req, res) => {
 users.put("/:user_id", checkUserIndex,
     checkUsernameExistsOtherThanSelf,
     checkEmailExistsOtherThanSelf,
+    checkEmailFormat,
     async (req, res) => {
         try {
             const { user_id } = req.params
