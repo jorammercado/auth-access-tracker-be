@@ -95,8 +95,18 @@ const checkEmailFormat = (req, res, next) => {
     }
 }
 
+const checkFirstnameLettersOnly = (req, res, next) => {
+    const nameRegex = /^[a-zA-Z]+$/
+    if (!req.body.firstname || nameRegex.test(req.body.firstname)) {
+        return next()
+    } else {
+        res.status(400).json({ error: "Firstname must contain only letters!" })
+    }
+}
+
 
 module.exports = {
+    checkFirstnameLettersOnly,
     checkEmailFormat,
     checkUsernameProvided,
     checkEmailProvided,

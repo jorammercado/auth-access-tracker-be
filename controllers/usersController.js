@@ -18,13 +18,14 @@ const {
     checkEmailExists,
     checkUsernameExistsOtherThanSelf,
     checkEmailExistsOtherThanSelf,
-    checkEmailFormat
+    checkEmailFormat,
+    checkFirstnameLettersOnly
 } = require("../validations/checkUser.js")
 
 const users = express.Router()
 
 // login route
-users.post("/login", checkEmailProvided, checkPasswordProvided, checkEmailFormat, async (req, res) => {
+users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res) => {
     let oneUser = await getOneUserByEmail(req.body)
     if (oneUser) {
         bcrypt.compare(req.body.password, oneUser.password).then((isMatch) => {
@@ -52,7 +53,8 @@ users.post("/", checkUsernameProvided,
     checkPasswordProvided,
     checkUsernameExists,
     checkEmailExists,
-    checkEmailFormat, async (req, res) => {
+    checkEmailFormat,
+    checkFirstnameLettersOnly, async (req, res) => {
         const newUser = req.body
         bcrypt.genSalt(10, async (err, salt) => {
             bcrypt.hash(newUser.password, salt, async (err, hash) => {
@@ -66,7 +68,7 @@ users.post("/", checkUsernameProvided,
                     newUser.dob = !newUser.dob ? "1/1/2024" : newUser.dob
                     let createdUser = await createUser(newUser)
                     if (createdUser.user_id) {
-                        createdUser.password = "hidden"
+                        createdUser.password = "***************"
                         res.status(200).json(createdUser)
                     }
                     else {
@@ -105,6 +107,7 @@ users.put("/:user_id", checkUserIndex,
     checkUsernameExistsOtherThanSelf,
     checkEmailExistsOtherThanSelf,
     checkEmailFormat,
+    checkFirstnameLettersOnly,
     async (req, res) => {
         try {
             const { user_id } = req.params
