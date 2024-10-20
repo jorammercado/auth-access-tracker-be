@@ -17,7 +17,7 @@ auth.post("/forgot-password", async (req, res) => {
         
         const user = await getOneUserByEmail(email)
         
-        if (!user.email) { // dont inform the user if the email is not found
+        if (!user?.email) { // dont inform the user if the email is not found
             return res.status(200).json({ message: "If an account is associated with this email, a reset link will be sent." })
         }
         
