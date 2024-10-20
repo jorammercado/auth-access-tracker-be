@@ -108,7 +108,21 @@ const updateUser = async (user_id, user) => {
     }
 }
 
+const updateUserPassword = async (user_id, password) => {
+    try {
+        const updatedUser = await db.one(
+            `UPDATE users SET password=$1 WHERE user_id=$2 RETURNING *`,
+            [password, user_id]
+        )
+        return updatedUser
+    }
+    catch (err) {
+        return { err: `${err}, SQL query error in updating user password` }
+    }
+}
+
 module.exports = {
+    updateUserPassword,
     getOneUser,
     getAllUsers,
     getOneUserByEmail,

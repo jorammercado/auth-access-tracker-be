@@ -62,6 +62,14 @@ const checkPasswordProvided = (req, res, next) => {
     }
 }
 
+const checkNewPasswordProvided = (req, res, next) => {
+    if (req.body.newPassword) {
+        return next()
+    } else {
+        res.status(400).json({ error: "new password is required!" })
+    }
+}
+
 const checkValidUsername = async (req, res, next) => {
     const allUsers = await getAllUsers()
     const { username } = req.params
@@ -145,8 +153,35 @@ const checkDobFormat = (req, res, next) => {
     }
 }
 
+const checkPasswordStrength = (passwordField) => (req, res, next) => {
+    const password = req.body[passwordField]
+    const errors = []
+
+    if (!/(?=.*\d)/.test(password)) 
+        errors.push("Password must contain at least one digit.")
+    
+    if (!/(?=.*[a-z])/.test(password)) 
+        errors.push("Password must contain at least one lowercase letter.")
+    
+    if (!/(?=.*[A-Z])/.test(password)) 
+        errors.push("Password must contain at least one uppercase letter.")
+    
+    if (!/(?=.*[\W_])/.test(password)) 
+        errors.push("Password must contain at least one special character.")
+    
+    if (password.length < 8) 
+        errors.push("Password must be at least 8 characters long.")
+
+    if (errors.length > 0) 
+        return res.status(400).json({ error: errors.join(" ") })
+    
+    next()
+}
+
 
 module.exports = {
+    checkPasswordStrength,
+    checkNewPasswordProvided,
     checkDobFormat,
     checkUsernameValidity,
     checkLastnameLettersOnly,

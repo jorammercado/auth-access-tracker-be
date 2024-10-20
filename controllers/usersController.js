@@ -7,7 +7,8 @@ const {
     getOneUserByUserName,
     createUser,
     deleteUser,
-    updateUser
+    updateUser,
+    updateUserPassword,
 } = require("../queries/users.js")
 
 const {
@@ -23,7 +24,9 @@ const {
     checkFirstnameLettersOnly,
     checkLastnameLettersOnly,
     checkUsernameValidity,
-    checkDobFormat
+    checkDobFormat,
+    checkNewPasswordProvided,
+    checkPasswordStrength
 } = require("../validations/checkUser.js")
 const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddleware.js")
 
@@ -75,7 +78,8 @@ users.post("/", checkUsernameProvided,
     checkLastnameLettersOnly,
     checkUsernameValidity,
     checkDobFormat,
-    setDefaultValues, async (req, res) => {
+    setDefaultValues,
+    checkPasswordStrength("password"), async (req, res) => {
         try {
             const newUser = req.body
             const salt = await bcrypt.genSalt(10)
@@ -123,8 +127,47 @@ users.delete("/:user_id", verifyToken, checkUserIndex, async (req, res) => {
     }
 })
 
+// update password route
+users.put("/:user_id/password",
+    verifyToken,
+    checkUserIndex,
+    checkPasswordProvided,
+    checkNewPasswordProvided,
+    checkPasswordStrength("newPassword"),
+    async (req, res) => {
+        try {
+            const { user_id } = req.params
+            const { password, newPassword } = req.body
+
+            let oneUser = await getOneUserByUserName({ user_id })
+            if (!oneUser) {
+                return res.status(404).json({ error: "User not found" })
+            }
+
+            const isMatch = await bcrypt.compare(password, oneUser.password)
+            if (!isMatch) {
+                return res.status(400).json({ error: "Incorrect old password" })
+            }
+
+            const salt = await bcrypt.genSalt(10)
+            const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+            let updatedUser = await updateUserPassword(user_id, hashedPassword)
+            if (updatedUser.user_id) {
+                updatedUser.password = "***************"
+                res.status(200).json(updatedUser)
+            } else {
+                res.status(400).json({
+                    error: `Error in updating password, try again`
+                })
+            }
+        } catch (error) {
+            res.status(400).json({ error: `${error}, error in password update route, in controller` })
+        }
+    })
+
 // update user route
-users.put("/:user_id", 
+users.put("/:user_id",
     verifyToken,
     checkUserIndex,
     checkUsernameExistsOtherThanSelf,
