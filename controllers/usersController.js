@@ -28,7 +28,7 @@ const {
 const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddleware.js")
 
 const users = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET
 
 // login route
 users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res) => {

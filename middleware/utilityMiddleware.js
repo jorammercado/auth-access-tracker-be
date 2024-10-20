@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken")
+const JWT_SECRET = process.env.JWT_SECRET
 
 const setDefaultValues = (req, res, next) => {
     req.body.profile_img = req.body.profile_img || "profile image"
