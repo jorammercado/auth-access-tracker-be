@@ -12,6 +12,9 @@ app.get("/", (req, res) => {
 const usersController = require("./controllers/usersController")
 app.use("/users", usersController)
 
+const authController = require("./controllers/authController")
+app.use("/auth", authController)
+
 app.get("*", (req, res) => {
     res.status(404).json({ success: false, data: { error: "Page not found." } })
 })

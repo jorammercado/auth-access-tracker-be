@@ -14,7 +14,9 @@ CREATE TABLE users (
     profile_img TEXT DEFAULT 'profile image',
     about TEXT DEFAULT 'about me',
     dob VARCHAR(20) DEFAULT '1/1/2024',
-    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    reset_token VARCHAR(255),                      
+    reset_token_expiration TIMESTAMP);
 
 CREATE TABLE login_attempts (
     attempt_id SERIAL PRIMARY KEY,

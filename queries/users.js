@@ -19,7 +19,7 @@ const getAllUsers = async () => {
     }
 }
 
-const getOneUserByEmail = async ({ email }) => {
+const getOneUserByEmail = async ( email ) => {
     try {
         const oneUser = await db.oneOrNone("SELECT * FROM users WHERE email=$1",
             email)
@@ -121,7 +121,21 @@ const updateUserPassword = async (user_id, password) => {
     }
 }
 
+const updateUserResetToken = async (user_id, hashedToken, expirationTime) => {
+    try {
+        await db.none(
+            `UPDATE users SET reset_token=$1, reset_token_expiration=$2 WHERE user_id=$3`,
+            [hashedToken, expirationTime, user_id]
+        )
+        return { success: true }
+    }
+    catch (err) {
+        return { err: `${err}, SQL query error in updating user reset token` }
+    }
+}
+
 module.exports = {
+    updateUserResetToken,
     updateUserPassword,
     getOneUser,
     getAllUsers,
