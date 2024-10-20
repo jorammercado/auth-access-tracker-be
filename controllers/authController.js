@@ -24,7 +24,7 @@ auth.post("/forgot-password", async (req, res) => {
         const resetToken = Math.random().toString(36).substring(2)
         const hashedToken = await bcrypt.hash(resetToken, 10)
         
-        const expirationTime = new Date(Date.now() + 3600000) // 1 hour
+        const expirationTime = new Date(Date.now() + 3 * 60 * 1000) // 3 min
         await updateUserResetToken(user.user_id, hashedToken, expirationTime)
         
         const transporter = nodemailer.createTransport({
@@ -40,7 +40,7 @@ auth.post("/forgot-password", async (req, res) => {
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: "Password Reset Request",
-            text: `You requested a password reset. Click on the link to reset your password: ${resetLink}. This link is valid for one hour.`,
+            text: `You requested a password reset. Click on the link to reset your password: ${resetLink}. This link is valid for 3 minutes.`,
         };
         
         transporter.sendMail(mailOptions, (error, info) => {
