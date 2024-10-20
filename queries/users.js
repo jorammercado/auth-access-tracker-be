@@ -1,4 +1,5 @@
 const db = require("../db/dbConfig.js")
+const bcrypt = require("bcryptjs")
 
 const getOneUser = async (id) => {
     try {
@@ -134,7 +135,31 @@ const updateUserResetToken = async (user_id, hashedToken, expirationTime) => {
     }
 }
 
+const getUserByResetToken = async (token) => {
+    try {
+        
+        const user = await db.oneOrNone(
+            `SELECT * FROM users WHERE reset_token IS NOT NULL AND reset_token_expiration > NOW()`
+        );
+
+        if (!user?.reset_token) {
+            return null
+        }
+
+        const isMatch = await bcrypt.compare(token, user.reset_token)
+
+        if (isMatch) {
+            return user
+        } else {
+            return null
+        }
+    } catch (err) {
+        return { err: `${err}, sql query error in getting user by reset token` }
+    }
+}
+
 module.exports = {
+    getUserByResetToken,
     updateUserResetToken,
     updateUserPassword,
     getOneUser,
