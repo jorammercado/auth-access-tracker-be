@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken")
 
 const {
     getOneUserByEmail,
-    getOneUserByUserName,
+    getOneUser,
     createUser,
     deleteUser,
     updateUser,
@@ -139,7 +139,7 @@ users.put("/:user_id/password",
             const { user_id } = req.params
             const { password, newPassword } = req.body
 
-            let oneUser = await getOneUserByUserName({ user_id })
+            let oneUser = await getOneUser( user_id )
             if (!oneUser) {
                 return res.status(404).json({ error: "User not found" })
             }
