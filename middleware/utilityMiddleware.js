@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken")
+
 const setDefaultValues = (req, res, next) => {
     req.body.profile_img = req.body.profile_img || "profile image"
     req.body.firstname = req.body.firstname || "unknown first name"
