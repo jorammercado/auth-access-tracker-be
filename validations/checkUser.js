@@ -38,7 +38,7 @@ const checkEmailProvided = (req, res, next) => {
 
 const checkEmailExists = async (req, res, next) => {
     const registeredUserByEmail = await getOneUserByEmail(req.body)
-    if (registeredUserByEmail) {
+    if (registeredUserByEmail.email) {
         res.status(400).json({ error: "user already registered with this address" })
     } else {
         next()
