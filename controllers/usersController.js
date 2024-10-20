@@ -111,8 +111,8 @@ users.delete("/:user_id", verifyToken, checkUserIndex, async (req, res) => {
         const { user_id } = req.params
         const deletedUser = await deleteUser(user_id)
         if (deletedUser) {
-            deletedUser.password = ""
-            res.status(204).send()
+            deletedUser.password = "***************"
+            res.status(200).json(deletedUser)
         }
         else {
             res.status(404).json({ error: "user not found => not deleted" })
