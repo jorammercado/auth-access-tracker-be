@@ -32,6 +32,9 @@ const {
 } = require("../validations/checkUser.js")
 const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddleware.js")
 
+const { createLoginAttempt, getRecentFailedAttempts } = require("../queries/loginAttempts.js")
+const { createLoginHistory } = require("../queries/loginHistory.js")
+
 const users = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET
 
@@ -73,21 +76,59 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
 users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (req, res) => {
     try {
         let oneUser = await getOneUserByEmail(req.body.email)
+        const ip_address = req.ip
+        const device_fingerprint = req.headers['user-agent'] || "unknown"
         if (!oneUser?.email) {
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
 
+        // get last failed login attempts
+        const failedAttempts = await getRecentFailedAttempts(oneUser.user_id, 3)
+        if (failedAttempts.length >= 3) {
+            const lastAttemptTime = new Date(failedAttempts[0].attempt_time)
+            const currentTime = new Date()
+            const sixHoursInMillis = 6 * 60 * 60 * 1000
+
+            const transporter = nodemailer.createTransport({
+                service: "gmail",
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,
+                },
+            })
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: oneUser.email,
+                subject: "Account Locked Due to Multiple Failed Login Attempts",
+                text: "Your account has been locked due to multiple failed login attempts. Login access will be restored after 6 hours. If this wasn't you, please contact support immediately."
+            }
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error("Failed to send account lock email:", error)
+                }
+            })
+
+            return res.status(403).json({ error: "Account locked due to multiple failed login attempts. Please try again later." })
+
+        }
+
+
         const isMatch = await bcrypt.compare(req.body.password, oneUser.password);
         if (!isMatch) {
+            await addLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
+            const remainingAttempts = 3 - (failedAttempts.length + 1)
             return res.status(400).json({
                 error: "Incorrect email and/or password",
                 status: "Login Failure",
-                login: false
+                login: false,
+                remainingAttempts
             })
         }
 
         // 6 digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString() 
+        const otp = Math.floor(100000 + Math.random() * 900000).toString()
         const hashedOtp = await bcrypt.hash(otp, 10)
         // one time pwd valid for 3 min
         const expirationTime = new Date(Date.now() + 3 * 60 * 1000)
@@ -109,11 +150,14 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             text: `Your one-time password (OTP) is: ${otp}. It will expire in 3 minutes.`,
         }
 
-        transporter.sendMail(mailOptions, (error, info) => {
+        transporter.sendMail(mailOptions, async (error, info) => {
             if (error) {
                 console.error("Failed to send OTP email:", error)
+                await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
                 return res.status(500).json({ error: "Failed to send OTP. Please try again." })
             } else {
+                await createLoginAttempt(oneUser.user_id, ip_address, true, device_fingerprint)
+                await createLoginHistory(oneUser.user_id, ip_address, device_fingerprint)
                 return res.status(200).json({ message: "OTP sent to your email.", user_id: oneUser.user_id })
             }
         })
@@ -193,7 +237,7 @@ users.put("/:user_id/password-reset",
             const { user_id } = req.params
             const { password } = req.body
 
-            const user = await getOneUser( user_id )
+            const user = await getOneUser(user_id)
             if (!user) {
                 return res.status(404).json({ error: "User not found" })
             }
@@ -228,7 +272,7 @@ users.put("/:user_id/password",
             const { user_id } = req.params
             const { password, newPassword } = req.body
 
-            let oneUser = await getOneUser( user_id )
+            let oneUser = await getOneUser(user_id)
             if (!oneUser) {
                 return res.status(404).json({ error: "User not found" })
             }
