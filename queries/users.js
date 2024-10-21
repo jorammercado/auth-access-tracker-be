@@ -158,7 +158,21 @@ const getUserByResetToken = async (token) => {
     }
 }
 
+const updateUserMfaOtp = async (user_id, hashedOtp, expirationTime) => {
+    try {
+        await db.none(
+            `UPDATE users SET mfa_otp=$1, mfa_otp_expiration=$2 WHERE user_id=$3`,
+            [hashedOtp, expirationTime, user_id]
+        )
+    } catch (err) {
+        console.error("Error updating user MFA OTP:", err)
+        throw err
+    }
+}
+
+
 module.exports = {
+    updateUserMfaOtp,
     getUserByResetToken,
     updateUserResetToken,
     updateUserPassword,

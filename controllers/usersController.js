@@ -10,6 +10,7 @@ const {
     deleteUser,
     updateUser,
     updateUserPassword,
+    updateUserMfaOtp
 } = require("../queries/users.js")
 
 const {
