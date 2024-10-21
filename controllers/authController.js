@@ -2,11 +2,13 @@ const express = require("express")
 const auth = express.Router()
 const nodemailer = require("nodemailer")
 const bcrypt = require("bcryptjs")
+const jwt = require("jsonwebtoken")
 
 const {
     getOneUserByEmail,
     updateUserResetToken,
-    getUserByResetToken
+    getUserByResetToken,
+    getOneUser
 } = require("../queries/users.js")
 
 // forgot password route
@@ -72,7 +74,7 @@ auth.post("/verify-reset-token", async (req, res) => {
         return res.status(200).json({ message: "Valid token", user_id: user.user_id });
     } catch (error) {
         console.error("Error verifying reset token:", error)
-        res.status(500).json({ error: "An error occurred while verifying the token. Please try again later.", error })
+        res.status(500).json({ error: "An error occurred while verifying the token. Please try again later. ", error })
     }
 })
 
@@ -105,7 +107,7 @@ auth.post("/verify-otp", async (req, res) => {
         res.status(200).json({ status: "Login Success", login: true, token, oneUser })
     } catch (error) {
         console.error("Error verifying OTP:", error)
-        res.status(500).json({ error: "Server error, please try again later" })
+        res.status(500).json({ error: "Server error, please try again later: ", error })
     }
 })
 

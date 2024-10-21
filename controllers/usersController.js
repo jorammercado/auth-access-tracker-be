@@ -114,7 +114,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
                 console.error("Failed to send OTP email:", error)
                 return res.status(500).json({ error: "Failed to send OTP. Please try again." })
             } else {
-                return res.status(200).json({ message: "OTP sent to your email." })
+                return res.status(200).json({ message: "OTP sent to your email.", user_id: oneUser.user_id })
             }
         })
     } catch (error) {
