@@ -38,7 +38,20 @@ const getAllLoginAttempts = async () => {
     }
 }
 
+const getLastThreeLoginAttempts = async (user_id) => {
+    try {
+        const attempts = await db.any(
+            `SELECT * FROM login_attempts WHERE user_id=$1 ORDER BY attempt_time DESC LIMIT 3`,
+            [user_id]
+        )
+        return attempts
+    } catch (err) {
+        return { err: `${err}, SQL query error - get last three login attempts` }
+    }
+}
+
 module.exports = {
+    getLastThreeLoginAttempts,
     createLoginAttempt,
     getLoginAttemptsByUserId,
     getAllLoginAttempts

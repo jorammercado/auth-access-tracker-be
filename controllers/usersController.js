@@ -32,7 +32,7 @@ const {
 } = require("../validations/checkUser.js")
 const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddleware.js")
 
-const { createLoginAttempt, getRecentFailedAttempts } = require("../queries/loginAttempts.js")
+const { createLoginAttempt, getLastThreeLoginAttempts } = require("../queries/loginAttempts.js")
 const { createLoginHistory } = require("../queries/loginHistory.js")
 
 const users = express.Router()
@@ -82,36 +82,44 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
 
-        // get last failed login attempts
-        const failedAttempts = await getRecentFailedAttempts(oneUser.user_id, 3)
+        // check last 3 login attempts
+        const recentAttempts = await getLastThreeLoginAttempts(oneUser.user_id)
+        const failedAttempts = recentAttempts.filter(attempt => !attempt.success)
         if (failedAttempts.length >= 3) {
             const lastAttemptTime = new Date(failedAttempts[0].attempt_time)
             const currentTime = new Date()
             const sixHoursInMillis = 6 * 60 * 60 * 1000
 
-            const transporter = nodemailer.createTransport({
-                service: "gmail",
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS,
-                },
-            })
+            if (currentTime - lastAttemptTime < sixHoursInMillis) {
+                await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
+                const transporter = nodemailer.createTransport({
+                    service: "gmail",
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS,
+                    },
+                })
 
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: oneUser.email,
-                subject: "Account Locked Due to Multiple Failed Login Attempts",
-                text: "Your account has been locked due to multiple failed login attempts. Login access will be restored after 6 hours. If this wasn't you, please contact support immediately."
-            }
-
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.error("Failed to send account lock email:", error)
+                const mailOptions = {
+                    from: process.env.EMAIL_USER,
+                    to: oneUser.email,
+                    subject: "Account Locked Due to Multiple Failed Login Attempts",
+                    text: "Your account has been locked due to multiple failed login " +
+                        "attempts. Login access will be restored after 6 hours. If this " +
+                        "wasn't you, please contact support immediately."
                 }
-            })
 
-            return res.status(403).json({ error: "Account locked due to multiple failed login attempts. Please try again later." })
+                transporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                        console.error("Failed to send account lock email:", error)
+                    }
+                })
 
+                return res.status(403).json({
+                    error: "Account locked due to multiple " +
+                        "failed login attempts. Please try again later."
+                })
+            }
         }
 
 
