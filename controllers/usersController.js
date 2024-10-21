@@ -1,6 +1,7 @@
 const express = require("express")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
+const nodemailer = require("nodemailer")
 
 const {
     getOneUserByEmail,
@@ -33,7 +34,7 @@ const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddlewa
 const users = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET
 
-// login route
+// standard login route
 users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res) => {
     try {
         let oneUser = await getOneUserByEmail(req.body)
@@ -60,10 +61,64 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
             { expiresIn: '1h' }
         );
 
-        oneUser.password = "***************";
+        oneUser.password = "***************"
         res.status(200).json({ status: "Login Success", login: true, token, oneUser })
     } catch (error) {
         res.status(500).json({ error: error })
+    }
+})
+
+// login route with multi factor authentication
+users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (req, res) => {
+    try {
+        let oneUser = await getOneUserByEmail(req.body)
+        if (!oneUser?.email) {
+            return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
+        }
+
+        const isMatch = await bcrypt.compare(req.body.password, oneUser.password);
+        if (!isMatch) {
+            return res.status(400).json({
+                error: "Incorrect email and/or password",
+                status: "Login Failure",
+                login: false
+            })
+        }
+
+        // 6 digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString() 
+        const hashedOtp = await bcrypt.hash(otp, 10)
+        // one time pwd valid for 3 min
+        const expirationTime = new Date(Date.now() + 3 * 60 * 1000)
+
+        await updateUserMfaOtp(oneUser.user_id, hashedOtp, expirationTime)
+
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        })
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: oneUser.email,
+            subject: "Your OTP for Login",
+            text: `Your one-time password (OTP) is: ${otp}. It will expire in 3 minutes.`,
+        }
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Failed to send OTP email:", error)
+                return res.status(500).json({ error: "Failed to send OTP. Please try again." })
+            } else {
+                return res.status(200).json({ message: "OTP sent to your email." })
+            }
+        })
+    } catch (error) {
+        console.error("Error in initial login:", error)
+        res.status(500).json({ error: "An error occurred while processing your request. Please try again later." })
     }
 })
 

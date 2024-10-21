@@ -16,7 +16,9 @@ CREATE TABLE users (
     dob VARCHAR(20) DEFAULT '1/1/2024',
     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     reset_token VARCHAR(255),                      
-    reset_token_expiration TIMESTAMP);
+    reset_token_expiration TIMESTAMP,
+    mfa_otp VARCHAR(255),
+    mfa_otp_expiration TIMESTAMP );
 
 CREATE TABLE login_attempts (
     attempt_id SERIAL PRIMARY KEY,
