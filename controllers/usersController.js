@@ -127,6 +127,39 @@ users.delete("/:user_id", verifyToken, checkUserIndex, async (req, res) => {
     }
 })
 
+// password reset route
+users.put("/:user_id/password-reset",
+    checkUserIndex,
+    checkPasswordProvided,
+    checkPasswordStrength("password"),
+    async (req, res) => {
+        try {
+            const { user_id } = req.params
+            const { password } = req.body
+
+            const user = await getOneUser( user_id )
+            if (!user) {
+                return res.status(404).json({ error: "User not found" })
+            }
+
+            const salt = await bcrypt.genSalt(10)
+            const hashedPassword = await bcrypt.hash(password, salt)
+
+            let updatedUser = await updateUserPassword(user_id, hashedPassword)
+            if (updatedUser?.user_id) {
+                updatedUser.password = "***************"
+                res.status(200).json(updatedUser)
+            } else {
+                res.status(400).json({
+                    error: `Error in updating password, try again`
+                })
+            }
+        } catch (error) {
+            console.error(`Error in password reset route: ${error}`);
+            res.status(500).json({ error: `${error}; Internal server error while resetting password.` })
+        }
+    })
+
 // update password route
 users.put("/:user_id/password",
     verifyToken,
