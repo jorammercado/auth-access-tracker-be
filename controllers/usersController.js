@@ -125,7 +125,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
 
         const isMatch = await bcrypt.compare(req.body.password, oneUser.password);
         if (!isMatch) {
-            await addLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
+            await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
             const remainingAttempts = 3 - (failedAttempts.length + 1)
             return res.status(400).json({
                 error: "Incorrect email and/or password",
