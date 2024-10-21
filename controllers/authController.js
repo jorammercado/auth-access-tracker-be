@@ -76,4 +76,38 @@ auth.post("/verify-reset-token", async (req, res) => {
     }
 })
 
+// for MFA - verify one time pwd route
+auth.post("/verify-otp", async (req, res) => {
+    const { user_id, otp } = req.body
+
+    try {
+        const oneUser = await getOneUser(user_id)
+        if (!oneUser?.user_id) {
+            return res.status(404).json({ error: "User not found" })
+        }
+
+        const isMatch = await bcrypt.compare(otp, oneUser.mfa_otp);
+        if (!isMatch || new Date() > oneUser.mfa_otp_expiration) {
+            return res.status(400).json({ error: "Invalid or expired OTP" })
+        }
+
+        const token = jwt.sign(
+            {
+                user_id: oneUser.user_id,
+                email: oneUser.email,
+                username: oneUser.username
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        )
+
+        oneUser.password = "***************"
+        res.status(200).json({ status: "Login Success", login: true, token, oneUser })
+    } catch (error) {
+        console.error("Error verifying OTP:", error)
+        res.status(500).json({ error: "Server error, please try again later" })
+    }
+})
+
+
 module.exports = auth
