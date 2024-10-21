@@ -88,9 +88,9 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         if (failedAttempts.length >= 3) {
             const lastAttemptTime = new Date(failedAttempts[0].attempt_time)
             const currentTime = new Date()
-            const sixHoursInMillis = 6 * 60 * 60 * 1000
+            const thirtyMinutesInMillis = 30 * 60 * 1000
 
-            if (currentTime - lastAttemptTime < sixHoursInMillis) {
+            if (currentTime - lastAttemptTime < thirtyMinutesInMillis) {
                 await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
                 const transporter = nodemailer.createTransport({
                     service: "gmail",
@@ -105,7 +105,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
                     to: oneUser.email,
                     subject: "Account Locked Due to Multiple Failed Login Attempts",
                     text: "Your account has been locked due to multiple failed login " +
-                        "attempts. Login access will be restored after 6 hours. If this " +
+                        "attempts. Login access will be restored after 30 minutes. If this " +
                         "wasn't you, please contact support immediately."
                 }
 
