@@ -72,7 +72,7 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
 // login route with multi factor authentication
 users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (req, res) => {
     try {
-        let oneUser = await getOneUserByEmail(req.body)
+        let oneUser = await getOneUserByEmail(req.body.email)
         if (!oneUser?.email) {
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
