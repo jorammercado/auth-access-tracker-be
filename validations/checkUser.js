@@ -11,7 +11,7 @@ const checkUsernameProvided = (req, res, next) => {
 }
 
 const checkUsernameExists = async (req, res, next) => {
-    const registeredUserByUserName = await getOneUserByUserName(req.body)
+    const registeredUserByUserName = await getOneUserByUserName(req.body.username)
     if (registeredUserByUserName) {
         res.status(400).json({ error: "user already registered with this username" })
     } else {
@@ -21,7 +21,7 @@ const checkUsernameExists = async (req, res, next) => {
 
 const checkUsernameExistsOtherThanSelf = async (req, res, next) => {
     const { user_id } = req.params
-    const registeredUserByUserName = await getOneUserByUserName(req.body)
+    const registeredUserByUserName = await getOneUserByUserName(req.body.username)
     if (registeredUserByUserName?.user_id === Number(user_id) || !registeredUserByUserName)
         return next()
     else
@@ -37,7 +37,7 @@ const checkEmailProvided = (req, res, next) => {
 }
 
 const checkEmailExists = async (req, res, next) => {
-    const registeredUserByEmail = await getOneUserByEmail(req.body)
+    const registeredUserByEmail = await getOneUserByEmail(req.body.email)
     if (registeredUserByEmail.email) {
         res.status(400).json({ error: "user already registered with this address" })
     } else {
@@ -47,11 +47,12 @@ const checkEmailExists = async (req, res, next) => {
 
 const checkEmailExistsOtherThanSelf = async (req, res, next) => {
     const { user_id } = req.params
-    const registeredUserByEmail = await getOneUserByEmail(req.body)
+    const registeredUserByEmail = await getOneUserByEmail(req.body.email)
+    console.log(registeredUserByEmail)
     if (registeredUserByEmail?.user_id === Number(user_id) || !registeredUserByEmail)
         next()
     else
-        res.status(400).json({ error: "user already registered with this username" })
+        res.status(400).json({ error: "user already registered with this email" })
 }
 
 const checkPasswordProvided = (req, res, next) => {

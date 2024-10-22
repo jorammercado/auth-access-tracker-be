@@ -31,7 +31,7 @@ const getOneUserByEmail = async ( email ) => {
     }
 }
 
-const getOneUserByUserName = async ({ username }) => {
+const getOneUserByUserName = async ( username ) => {
     try {
         const oneUser = await db.oneOrNone("SELECT * FROM users WHERE username=$1",
             username)
