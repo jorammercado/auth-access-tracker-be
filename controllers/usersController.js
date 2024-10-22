@@ -84,6 +84,13 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
 
         // check last 3 login attempts
         const recentAttempts = await getLastThreeLoginAttempts(oneUser.user_id)
+        if (recentAttempts?.err) {
+            return res.status(500).json({
+                error: "An error occurred while retrieving recent " +
+                    "login attempts. Please try again later. " +
+                    `${recentAttempts?.err}`
+            })
+        }
         const failedAttempts = recentAttempts.filter(attempt => !attempt.success)
         if (failedAttempts.length >= 3) {
             const lastAttemptTime = new Date(failedAttempts[0].attempt_time)
