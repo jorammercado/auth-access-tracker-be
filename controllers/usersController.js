@@ -196,6 +196,8 @@ users.post("/", checkUsernameProvided,
     setDefaultValues,
     checkPasswordStrength("password"), async (req, res) => {
         try {
+            const ip_address = req.ip
+            const device_fingerprint = req.headers['user-agent'] || "unknown"
             const newUser = req.body
             const salt = await bcrypt.genSalt(10)
             newUser.password = await bcrypt.hash(newUser.password, salt)
@@ -213,6 +215,8 @@ users.post("/", checkUsernameProvided,
                 )
 
                 createdUser.password = "***************"
+                await createLoginAttempt(createdUser.user_id, ip_address, true, device_fingerprint)
+                await createLoginHistory(createdUser.user_id, ip_address, device_fingerprint)
                 res.status(201).json({ createdUser, token })
             } else {
                 res.status(400).json({
