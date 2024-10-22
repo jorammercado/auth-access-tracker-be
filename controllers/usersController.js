@@ -33,7 +33,7 @@ const {
 const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddleware.js")
 
 const { createLoginAttempt, getLastThreeLoginAttempts } = require("../queries/loginAttempts.js")
-const { createLoginHistory } = require("../queries/loginHistory.js")
+const { createLoginHistory, getLoginHistoryByUserId } = require("../queries/loginHistory.js")
 const { isIpBlocked, addBlockedIp, getAllFailedAttemptsForIp } = require("../queries/blockedIps.js")
 
 const users = express.Router()
@@ -176,13 +176,35 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             },
         })
 
+        // new browser login notification
+        const previousLogins = await getLoginHistoryByUserId(oneUser.user_id)
+        const isNewDevice = !previousLogins?.some(login => 
+            login.ip_address === ip_address && 
+            login.device_fingerprint === device_fingerprint
+        )
+
+        if (isNewDevice) {
+            const mailOptionsNewDevice = {
+                from: process.env.EMAIL_USER,
+                to: oneUser.email,
+                subject: "New Browser Login Detected",
+                text: `We detected a new browser login to your account.\nIP Address: ${ip_address}\nDevice: ${device_fingerprint}\nIf this wasn't you, please reset your password or contact support.`
+            }
+
+            transporter.sendMail(mailOptionsNewDevice, (error, info) => {
+                if (error) {
+                    console.error("Failed to send new browser login email:", error)
+                }
+            })
+        }
+
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: oneUser.email,
             subject: "Your OTP for Login",
             text: `Your one-time password (OTP) is: ${otp}. It will expire in 3 minutes.`,
         }
-
+        // mail for OTP
         transporter.sendMail(mailOptions, async (error, info) => {
             if (error) {
                 console.error("Failed to send OTP email:", error)
