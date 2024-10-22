@@ -34,6 +34,7 @@ const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddlewa
 
 const { createLoginAttempt, getLastThreeLoginAttempts } = require("../queries/loginAttempts.js")
 const { createLoginHistory } = require("../queries/loginHistory.js")
+const { isIpBlocked, addBlockedIp, getAllFailedAttemptsForIp } = require("../queries/blockedIps.js")
 
 const users = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET

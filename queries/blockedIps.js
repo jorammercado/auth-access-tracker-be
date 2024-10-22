@@ -25,7 +25,33 @@ const getBlockedIp = async (ip_address) => {
     }
 }
 
+const isIpBlocked = async (ip_address) => {
+    try {
+        const result = await db.oneOrNone(
+            `SELECT * FROM blocked_ips WHERE ip_address=$1 AND expiration_time > CURRENT_TIMESTAMP`,
+            [ip_address]
+        )
+        return result
+    } catch (err) {
+        return { err: `${err}, sql query error - check if IP is blocked` }
+    }
+}
+
+const getAllFailedAttemptsForIp = async (ip_address) => {
+    try {
+        const result = await db.any(
+            `SELECT * FROM blocked_ips WHERE ip_address=$1 AND expiration_time > CURRENT_TIMESTAMP`
+            [ip_address]
+        )
+        return result
+    } catch (err) {
+        return { err: `${err}, sql query error - get all failed attempts for IP` }
+    }
+}
+
 module.exports = {
+    isIpBlocked,
+    getAllFailedAttemptsForIp,
     addBlockedIp,
     getBlockedIp
 }
