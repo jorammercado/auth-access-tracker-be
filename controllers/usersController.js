@@ -78,6 +78,16 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         let oneUser = await getOneUserByEmail(req.body.email)
         const ip_address = req.ip
         const device_fingerprint = req.headers['user-agent'] || "unknown"
+
+        const ipBlockedInfo = await isIpBlocked(ip_address)
+        if (ipBlockedInfo) {
+            const remainingTime = new Date(ipBlockedInfo.expiration_time) - new Date()
+            const remainingMinutes = Math.ceil(remainingTime / (60 * 1000))
+            return res.status(403).json({
+                error: `Your IP is blocked due to multiple failed login attempts. Please try again after ${remainingMinutes} minutes.`
+            })
+        }
+
         if (!oneUser?.email) {
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
@@ -133,6 +143,13 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         const isMatch = await bcrypt.compare(req.body.password, oneUser.password);
         if (!isMatch) {
             await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
+
+            const allFailedAttempts = await getAllFailedAttemptsForIp(ip_address)
+            if (allFailedAttempts.length >= 5) {
+                const expirationTime = new Date(Date.now() + 45 * 60 * 1000) // block IP 45 min
+                await addBlockedIp(ip_address, expirationTime, oneUser.user_id)
+            }
+
             const remainingAttempts = 3 - (failedAttempts.length + 1)
             return res.status(400).json({
                 error: "Incorrect email and/or password",
