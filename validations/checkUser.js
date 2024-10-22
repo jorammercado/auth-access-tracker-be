@@ -48,7 +48,6 @@ const checkEmailExists = async (req, res, next) => {
 const checkEmailExistsOtherThanSelf = async (req, res, next) => {
     const { user_id } = req.params
     const registeredUserByEmail = await getOneUserByEmail(req.body.email)
-    console.log(registeredUserByEmail)
     if (registeredUserByEmail?.user_id === Number(user_id) || !registeredUserByEmail)
         next()
     else

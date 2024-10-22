@@ -36,3 +36,11 @@ CREATE TABLE login_history (
     ip_address VARCHAR(50),
     device_fingerprint TEXT
 );
+
+CREATE TABLE blocked_ips (
+    blocked_ip_id SERIAL PRIMARY KEY,
+    ip_address VARCHAR(50) NOT NULL,
+    block_expiration TIMESTAMP NOT NULL,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
