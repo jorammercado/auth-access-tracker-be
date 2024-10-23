@@ -89,7 +89,6 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
 
         // ip based blocking after 5 failed logins 
         const ipBlockedInfo = await isIpBlocked(ip_address)
-        console.log(ipBlockedInfo)
         if (ipBlockedInfo) {
             const remainingTime = new Date(ipBlockedInfo.expiration_time) - new Date()
             const remainingMinutes = Math.ceil(remainingTime / (60 * 1000))

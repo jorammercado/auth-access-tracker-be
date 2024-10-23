@@ -3,7 +3,7 @@ const { getAllUsers,
     getOneUserByEmail } = require("../queries/users")
 
 const checkUsernameProvided = (req, res, next) => {
-    if (req.body.username) {
+    if (req.body?.username) {
         return next()
     } else {
         res.status(400).json({ error: "username is required!" })
@@ -11,7 +11,7 @@ const checkUsernameProvided = (req, res, next) => {
 }
 
 const checkUsernameExists = async (req, res, next) => {
-    const registeredUserByUserName = await getOneUserByUserName(req.body.username)
+    const registeredUserByUserName = await getOneUserByUserName(req.body?.username)
     if (registeredUserByUserName) {
         res.status(400).json({ error: "user already registered with this username" })
     } else {
@@ -21,7 +21,7 @@ const checkUsernameExists = async (req, res, next) => {
 
 const checkUsernameExistsOtherThanSelf = async (req, res, next) => {
     const { user_id } = req.params
-    const registeredUserByUserName = await getOneUserByUserName(req.body.username)
+    const registeredUserByUserName = await getOneUserByUserName(req.body?.username)
     if (registeredUserByUserName?.user_id === Number(user_id) || !registeredUserByUserName)
         return next()
     else
@@ -29,7 +29,7 @@ const checkUsernameExistsOtherThanSelf = async (req, res, next) => {
 }
 
 const checkEmailProvided = (req, res, next) => {
-    if (req.body.email) {
+    if (req.body?.email) {
         return next()
     } else {
         res.status(400).json({ error: "email is required!" })
@@ -37,8 +37,8 @@ const checkEmailProvided = (req, res, next) => {
 }
 
 const checkEmailExists = async (req, res, next) => {
-    const registeredUserByEmail = await getOneUserByEmail(req.body.email)
-    if (registeredUserByEmail.email) {
+    const registeredUserByEmail = await getOneUserByEmail(req.body?.email)
+    if (registeredUserByEmail?.email) {
         res.status(400).json({ error: "user already registered with this address" })
     } else {
         next()
@@ -47,7 +47,7 @@ const checkEmailExists = async (req, res, next) => {
 
 const checkEmailExistsOtherThanSelf = async (req, res, next) => {
     const { user_id } = req.params
-    const registeredUserByEmail = await getOneUserByEmail(req.body.email)
+    const registeredUserByEmail = await getOneUserByEmail(req.body?.email)
     if (registeredUserByEmail?.user_id === Number(user_id) || !registeredUserByEmail)
         next()
     else
@@ -55,7 +55,7 @@ const checkEmailExistsOtherThanSelf = async (req, res, next) => {
 }
 
 const checkPasswordProvided = (req, res, next) => {
-    if (req.body.password) {
+    if (req.body?.password) {
         return next()
     } else {
         res.status(400).json({ error: "password is required!" })
@@ -63,7 +63,7 @@ const checkPasswordProvided = (req, res, next) => {
 }
 
 const checkNewPasswordProvided = (req, res, next) => {
-    if (req.body.newPassword) {
+    if (req.body?.newPassword) {
         return next()
     } else {
         res.status(400).json({ error: "new password is required!" })
