@@ -2,6 +2,7 @@ const express = require("express")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const nodemailer = require("nodemailer")
+const redisClient = require('../redisClient')
 
 const {
     getOneUserByEmail,
@@ -79,8 +80,16 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         let oneUser = await getOneUserByEmail(req.body.email)
         const ip_address = req.ip
         const device_fingerprint = req.headers['user-agent'] || "unknown"
+        const redisKeyIp = `login_attempts:ip:${ip_address}`
+        const redisKeyDevice = `login_attempts:device:${device_fingerprint}`
 
+        // check if IP or device is blocked by Redis (rate blocking)
+        const ipBlockedByRedis = await redisClient.get(`blocked:ip:${ip_address}`)
+        const deviceBlockedByRedis = await redisClient.get(`blocked:device:${device_fingerprint}`)
+
+        // ip based blocking after 5 failed logins 
         const ipBlockedInfo = await isIpBlocked(ip_address)
+        console.log(ipBlockedInfo)
         if (ipBlockedInfo) {
             const remainingTime = new Date(ipBlockedInfo.expiration_time) - new Date()
             const remainingMinutes = Math.ceil(remainingTime / (60 * 1000))
@@ -90,6 +99,12 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         }
 
         if (!oneUser?.email) {
+            // for redis rate limiting - increment failed attempts for IP and device
+            await redisClient.incr(redisKeyIp)
+            await redisClient.incr(redisKeyDevice)
+            await redisClient.expire(redisKeyIp, 60) // expire in 1 min
+            await redisClient.expire(redisKeyDevice, 60) // expire in 1 min
+
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
 

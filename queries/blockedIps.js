@@ -28,7 +28,7 @@ const getBlockedIp = async (ip_address) => {
 const isIpBlocked = async (ip_address) => {
     try {
         const result = await db.oneOrNone(
-            `SELECT * FROM blocked_ips WHERE ip_address=$1 AND expiration_time > CURRENT_TIMESTAMP`,
+            `SELECT * FROM blocked_ips WHERE ip_address=$1 AND block_expiration > CURRENT_TIMESTAMP`,
             [ip_address]
         )
         return result
@@ -40,7 +40,7 @@ const isIpBlocked = async (ip_address) => {
 const getAllFailedAttemptsForIp = async (ip_address) => {
     try {
         const result = await db.any(
-            `SELECT * FROM blocked_ips WHERE ip_address=$1 AND expiration_time > CURRENT_TIMESTAMP`
+            `SELECT * FROM blocked_ips WHERE ip_address=$1 AND block_expiration > CURRENT_TIMESTAMP`
             [ip_address]
         )
         return result
