@@ -5,6 +5,20 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+const redisClient = require('./redisClient')
+
+// route to test redis connection
+app.get('/redis-test', async (req, res) => {
+    try {
+        await redisClient.set('testKey-value-sent', 'Hello from Redis!')
+        const value = await redisClient.get('testKey-value-sent')
+        res.send(`Redis response: ${value}`)
+    } catch (error) {
+        console.error('Redis error:', error)
+        res.status(500).send('Error connecting to Redis.')
+    }
+})
+
 app.get("/", (req, res) => {
     res.send("Welcome to Red Canary Take Home Test.")
 })
