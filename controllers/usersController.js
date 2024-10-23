@@ -1,8 +1,7 @@
 const express = require("express")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
-const nodemailer = require("nodemailer")
-const redisClient = require('../redisClient')
+const redisClient = require('../redis/redisClient.js')
 
 const {
     getOneUserByEmail,
@@ -36,6 +35,15 @@ const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddlewa
 const { createLoginAttempt, getLastThreeLoginAttempts } = require("../queries/loginAttempts.js")
 const { createLoginHistory, getLoginHistoryByUserId } = require("../queries/loginHistory.js")
 const { isIpBlocked, addBlockedIp, getAllFailedAttemptsForIp } = require("../queries/blockedIps.js")
+
+const transporter = require('../email/emailTransporter.js')
+const createMailOptions = require("../email/mailOptions.js")
+const { incrementRedisKeys } = require('../redis/redisUtils')
+
+const THIRTY_MINUTES_IN_MS = 30 * 60 * 1000
+const FORTY_FIVE_MINUTES_IN_MS = 45 * 60 * 1000
+const OTP_EXPIRATION_MS = 3 * 60 * 1000 // 3 minutes
+const MAX_FAILED_ATTEMPTS = 3
 
 const users = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET
@@ -83,11 +91,31 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         const redisKeyIp = `login_attempts:ip:${ip_address}`
         const redisKeyDevice = `login_attempts:device:${device_fingerprint}`
 
-        // check if IP or device is blocked by Redis (rate blocking)
-        const ipBlockedByRedis = await redisClient.get(`blocked:ip:${ip_address}`)
-        const deviceBlockedByRedis = await redisClient.get(`blocked:device:${device_fingerprint}`)
+        // check if IP or device is already blocked by Redis (rate blocking)
+        let ipBlockedByRedis, deviceBlockedByRedis
+        try {
+            ipBlockedByRedis = await redisClient.get(`blocked:ip:${ip_address}`)
+            deviceBlockedByRedis = await redisClient.get(`blocked:device:${device_fingerprint}`)
+        } catch (error) {
+            console.error("Error accessing Redis for blocked IP/device:", error)
+            return res.status(500).json({ error: "An error occurred while verifying access. Please try again later." })
+        }
+        if (ipBlockedByRedis || deviceBlockedByRedis) {
+            const blockedUntil = parseInt(ipBlockedByRedis || deviceBlockedByRedis)
 
-        // ip based blocking after 5 failed logins 
+            if (isNaN(blockedUntil))
+                return res.status(500).json({ error: "An error occurred while verifying access. Please try again later." });
+
+            console.log(blockedUntil)
+            const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000))
+            console.log(remainingMinutes)
+            return res.status(403).json({
+                error: `Your IP or device is blocked due to multiple failed login attempts. Please try again after ${remainingMinutes} minutes.`
+            })
+        }
+
+        // ip based blocking after 5 failed logins - (different/multiple user accounts used)
+        // not handled/maintained by redis
         const ipBlockedInfo = await isIpBlocked(ip_address)
         if (ipBlockedInfo) {
             const remainingTime = new Date(ipBlockedInfo.expiration_time) - new Date()
@@ -98,16 +126,14 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         }
 
         if (!oneUser?.email) {
-            // for redis rate limiting - increment failed attempts for IP and device
-            await redisClient.incr(redisKeyIp)
-            await redisClient.incr(redisKeyDevice)
-            await redisClient.expire(redisKeyIp, 60) // expire in 1 min
-            await redisClient.expire(redisKeyDevice, 60) // expire in 1 min
+
+            // redis rate blocking documenation before returning
+            await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
 
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
 
-        // check last 3 login attempts
+        // check last 3 login attempts - account blocking for 3 consecutive fails
         const recentAttempts = await getLastThreeLoginAttempts(oneUser.user_id)
         if (recentAttempts?.err) {
             return res.status(500).json({
@@ -117,35 +143,26 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             })
         }
         const failedAttempts = recentAttempts.filter(attempt => !attempt.success)
-        if (failedAttempts.length >= 3) {
+        if (failedAttempts.length >= MAX_FAILED_ATTEMPTS) {
             const lastAttemptTime = new Date(failedAttempts[0].attempt_time)
             const currentTime = new Date()
-            const thirtyMinutesInMillis = 30 * 60 * 1000
 
-            if (currentTime - lastAttemptTime < thirtyMinutesInMillis) {
+            if (currentTime - lastAttemptTime < THIRTY_MINUTES_IN_MS) {
                 await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
-                const transporter = nodemailer.createTransport({
-                    service: "gmail",
-                    auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASS,
-                    },
-                })
+                const mailOptions = createMailOptions(oneUser.email, "Account Locked Due to Multiple Failed Login Attempts",
+                    "Your account has been locked due to multiple failed login " +
+                    "attempts. Login access will be restored after 30 minutes. If this " +
+                    "wasn't you, please contact support immediately."
+                )
 
-                const mailOptions = {
-                    from: process.env.EMAIL_USER,
-                    to: oneUser.email,
-                    subject: "Account Locked Due to Multiple Failed Login Attempts",
-                    text: "Your account has been locked due to multiple failed login " +
-                        "attempts. Login access will be restored after 30 minutes. If this " +
-                        "wasn't you, please contact support immediately."
+                try {
+                    await transporter.sendMail(mailOptions)
+                } catch (error) {
+                    console.error("Failed to send account lock email:", error)
                 }
 
-                transporter.sendMail(mailOptions, (error, info) => {
-                    if (error) {
-                        console.error("Failed to send account lock email:", error)
-                    }
-                })
+                // redis rate blocking documenation before returning
+                await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
 
                 return res.status(403).json({
                     error: "Account locked due to multiple " +
@@ -159,13 +176,17 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         if (!isMatch) {
             await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
 
+            // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
             const allFailedAttempts = await getAllFailedAttemptsForIp(ip_address)
             if (allFailedAttempts.length >= 5) {
-                const expirationTime = new Date(Date.now() + 45 * 60 * 1000) // block IP 45 min
-                await addBlockedIp(ip_address, expirationTime, oneUser.user_id)
+                const expirationTimeIPBlocking = new Date(Date.now() + FORTY_FIVE_MINUTES_IN_MS) // block IP 45 min
+                await addBlockedIp(ip_address, expirationTimeIPBlocking, oneUser.user_id)
             }
 
-            const remainingAttempts = 3 - (failedAttempts.length + 1)
+            // redis rate blocking documenation before returning
+            await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
+
+            const remainingAttempts = MAX_FAILED_ATTEMPTS - (failedAttempts.length + 1)
             return res.status(400).json({
                 error: "Incorrect email and/or password",
                 status: "Login Failure",
@@ -178,58 +199,45 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         const otp = Math.floor(100000 + Math.random() * 900000).toString()
         const hashedOtp = await bcrypt.hash(otp, 10)
         // one time pwd valid for 3 min
-        const expirationTime = new Date(Date.now() + 3 * 60 * 1000)
+        const expirationTimeForOTP = new Date(Date.now() + OTP_EXPIRATION_MS)
 
-        await updateUserMfaOtp(oneUser.user_id, hashedOtp, expirationTime)
-
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        })
+        await updateUserMfaOtp(oneUser.user_id, hashedOtp, expirationTimeForOTP)
 
         // new browser login notification
         const previousLogins = await getLoginHistoryByUserId(oneUser.user_id)
-        const isNewDevice = !previousLogins?.some(login => 
-            login.ip_address === ip_address && 
+        const isNewDevice = !previousLogins?.some(login =>
+            login.ip_address === ip_address &&
             login.device_fingerprint === device_fingerprint
         )
 
         if (isNewDevice) {
-            const mailOptionsNewDevice = {
-                from: process.env.EMAIL_USER,
-                to: oneUser.email,
-                subject: "New Browser Login Detected",
-                text: `We detected a new browser login to your account.\nIP Address: ${ip_address}\nDevice: ${device_fingerprint}\nIf this wasn't you, please reset your password or contact support.`
+            const mailOptionsNewDevice = createMailOptions(oneUser.email, "New Browser Login Detected",
+                `We detected a new browser login to your account.\nIP Address: ${ip_address}\nDevice: ${device_fingerprint}\nIf ` +
+                `this wasn't you, please reset your password or contact support.`
+            )
+
+            try {
+                await transporter.sendMail(mailOptionsNewDevice)
+            } catch (error) {
+                console.error("Failed to send new browser login email:", error)
             }
 
-            transporter.sendMail(mailOptionsNewDevice, (error, info) => {
-                if (error) {
-                    console.error("Failed to send new browser login email:", error)
-                }
-            })
         }
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: oneUser.email,
-            subject: "Your OTP for Login",
-            text: `Your one-time password (OTP) is: ${otp}. It will expire in 3 minutes.`,
-        }
+        const mailOptions = createMailOptions(oneUser.email, "Your OTP for Login",
+            `Your one-time password (OTP) is: ${otp}. It will expire in 3 minutes.`
+        )
         // mail for OTP
-        transporter.sendMail(mailOptions, async (error, info) => {
-            if (error) {
-                console.error("Failed to send OTP email:", error)
-                await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
-                return res.status(500).json({ error: "Failed to send OTP. Please try again." })
-            } else {
-                await createLoginAttempt(oneUser.user_id, ip_address, true, device_fingerprint)
-                await createLoginHistory(oneUser.user_id, ip_address, device_fingerprint)
-                return res.status(200).json({ message: "OTP sent to your email.", user_id: oneUser.user_id })
-            }
-        })
+        try {
+            await transporter.sendMail(mailOptions)
+            await createLoginAttempt(oneUser.user_id, ip_address, true, device_fingerprint)
+            await createLoginHistory(oneUser.user_id, ip_address, device_fingerprint)
+            return res.status(200).json({ message: "OTP sent to your email.", user_id: oneUser.user_id })
+        } catch (error) {
+            console.error("Failed to send OTP email:", error)
+            await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
+            return res.status(500).json({ error: "Failed to send OTP. Please try again." })
+        }
     } catch (error) {
         console.error("Error in initial login:", error)
         res.status(500).json({ error: "An error occurred while processing your request. Please try again later." })

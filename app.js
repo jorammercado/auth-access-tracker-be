@@ -5,7 +5,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const redisClient = require('./redisClient')
+const redisClient = require('./redis/redisClient')
 
 // route to test redis connection
 app.get('/redis-test', async (req, res) => {
