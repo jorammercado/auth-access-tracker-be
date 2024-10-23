@@ -62,11 +62,9 @@ Overall, this structure enhances scalability, security, and makes the system mor
 ### Failed Login Tracking and Blocking 
 - Track failed login attempts for each user.
 
-- Block users after **three consecutive failed login attempts** and send email notifications informing them of the account lockout. The lockout lasts for a configurable period, set to **30 minutes** for debugging purposes.
+- Block users after **three consecutive failed login attempts**.
 
 - **IP-based blocking** is implemented to prevent users from bypassing blocks by switching accounts (distinct from rate limiting). This ensures even if users switch accounts, their IP remains blocked.
-
-- An **email notification** is sent when an account is locked after three failed attempts.
 
 ### New Browser Login Notification 
 - **Device Fingerprinting / IP Tracking**: Detect login attempts from new devices or browsers using IP addresses and device fingerprints.
@@ -76,7 +74,7 @@ Overall, this structure enhances scalability, security, and makes the system mor
 ### Protected API Access 
 - **JWT Verification**: Middleware is used to verify JWT tokens for protected routes, denying requests immediately if the token is invalid.
 
-- **IP-Based Blocking**: If a user fails to log in from an IP address five or more times, that IP address will be blocked from attempting further logins temporarily. *(This is implemented for enhanced security, but it differs from rate limiting, which was specifically designed to prevent brute-force attacks by limiting repeated failed attempts over a short time frame.)*
+- **IP-Based Blocking**: If a any user fails to log in from an IP address five or more times, that IP address will be blocked from attempting further logins temporarily. *(This is implemented for enhanced security, but it differs from rate limiting, which was specifically designed to prevent brute-force attacks by limiting repeated failed attempts over a short time frame.)*
 
 ### Multi-Factor Authentication (MFA)
 
