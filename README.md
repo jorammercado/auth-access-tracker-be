@@ -38,7 +38,9 @@ This repository contains the backend for the "User Authentication and Access Tra
 
 - **Password Management:** Provides secure password reset and update features via a reset email link, which includes a time limit and password re-verification for added security, respectively. 
 
-- **Rate Limiting:** Protects against brute-force attacks by limiting login attempts. Uses Redis to track IP addresses and device fingerprints.
+- **Rate Limiting:** Protects against brute-force attacks by limiting login attempts. Uses Redis (quick access to non-persistent RAM memory) to track IP addresses and device fingerprints.
+  - The rate limiting blocks an IP address or device fingerprint if **5 failed login attempts** occur within a specified timeframe (e.g., **1 minute**).
+  - Once blocked, the IP or device remains blocked for **10 minutes**, times chosen for development and debugging purposes.
 
 ### Database Integration
 - **PostgreSQL** is used to store user data and track activity.
@@ -73,8 +75,6 @@ Overall, this structure enhances scalability, security, and makes the system mor
 
 ### Protected API Access 
 - **JWT Verification**: Middleware is used to verify JWT tokens for protected routes, denying requests immediately if the token is invalid.
-
-- **IP-Based Blocking**: If a any user fails to log in from an IP address five or more times, that IP address will be blocked from attempting further logins temporarily. *(This is implemented for enhanced security, but it differs from rate limiting, which was specifically designed to prevent brute-force attacks by limiting repeated failed attempts over a short time frame.)*
 
 ### Multi-Factor Authentication (MFA)
 
