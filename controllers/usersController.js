@@ -106,9 +106,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             if (isNaN(blockedUntil))
                 return res.status(500).json({ error: "An error occurred while verifying access. Please try again later." });
 
-            console.log(blockedUntil)
             const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000))
-            console.log(remainingMinutes)
             return res.status(403).json({
                 error: `Your IP or device is blocked due to multiple failed login attempts. Please try again after ${remainingMinutes} minutes.`
             })
