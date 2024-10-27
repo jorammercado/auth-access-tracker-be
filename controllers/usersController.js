@@ -34,15 +34,19 @@ const { setDefaultValues, verifyToken } = require("../middleware/utilityMiddlewa
 
 const { createLoginAttempt, getLastThreeLoginAttempts } = require("../queries/loginAttempts.js")
 const { createLoginHistory, getLoginHistoryByUserId } = require("../queries/loginHistory.js")
-const { isIpBlocked, addBlockedIp, getAllFailedAttemptsForIp } = require("../queries/blockedIps.js")
+const { isIpBlocked,
+    addBlockedIp,
+    getLastSevenAttemptsForIp,
+    updateBlockedIpExpiration } = require("../queries/blockedIps.js")
 
 const transporter = require('../email/emailTransporter.js')
 const createMailOptions = require("../email/mailOptions.js")
 const { incrementRedisKeys, checkAndBlockIfLimitExceeded } = require('../redis/redisUtils')
 
+const calculateRemainingTime = require('../utils/timeUtils.js')
+
 const THIRTY_SECONDS_IN_MS = 30 * 1000
-const ONE_MINUTES_IN_MS = 1 * 60 * 1000
-const IP_BASED_BLOCKING_LIMIT = 10
+const IP_BASED_BLOCKING_LIMIT = 7
 const OTP_EXPIRATION_MS = 1 * 60 * 1000 // 1 minutes
 const MAX_FAILED_ATTEMPTS = 3
 
@@ -57,7 +61,7 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
             return res.status(404).json({ error: `user with ${req.body.email} email not found!` })
         }
 
-        const isMatch = await bcrypt.compare(req.body.password, oneUser.password);
+        const isMatch = await bcrypt.compare(req.body.password, oneUser.password)
         if (!isMatch) {
             return res.status(400).json({
                 error: "incorrect password and/or email",
@@ -74,7 +78,7 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
             },
             JWT_SECRET,
             { expiresIn: '10m' }
-        );
+        )
 
         oneUser.password = "***************"
         res.status(200).json({ status: "Login Success", login: true, token, oneUser })
@@ -110,10 +114,9 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
                 return res.status(500).json({ error: "An error occurred while verifying access. Please try again later." })
 
             const remainingTime = blockedUntil - Date.now()
-            const remainingMinutes = Math.floor(remainingTime / (60 * 1000))
-            const remainingSeconds = Math.ceil((remainingTime % (60 * 1000)) / 1000)
+            const { remainingMinutes, remainingSeconds } = calculateRemainingTime(remainingTime)
             return res.status(403).json({
-                error: `Your IP or device is blocked due to rate limits. Please try again after ${remainingMinutes} `
+                error: `Your IP or Device is blocked due to RATE LIMITS. Please try again after ${remainingMinutes} `
                     + `minutes and ${remainingSeconds} seconds.`
             })
         }
@@ -122,14 +125,25 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         // not handled/maintained by redis
         const ipBlockedInfo = await isIpBlocked(ip_address)
         if (ipBlockedInfo) {
-            const remainingTime = new Date(ipBlockedInfo.expiration_time) - new Date()
-            const remainingMinutes = Math.ceil(remainingTime / (60 * 1000))
+            const remainingTime = new Date(ipBlockedInfo.block_expiration) - new Date()
+            const { remainingMinutes, remainingSeconds } = calculateRemainingTime(remainingTime)
             return res.status(403).json({
-                error: `Your IP is blocked due to multiple failed login attempts. Please try again after ${remainingMinutes} minutes.`
+                error: `Your IP is blocked due to multiple failed login attempts. Please try again after ${remainingMinutes} minutes ` +
+                    ` and ${remainingSeconds} seconds.`
             })
         }
 
         if (!oneUser?.email) {
+            // failed login attempt from unknown user for ip-based tracking and blocking
+            const defaultUser = await getOneUserByEmail('unknown@domain.com')
+            await createLoginAttempt(defaultUser.user_id, ip_address, false, device_fingerprint)
+
+            // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
+            const last7Attempts = await getLastSevenAttemptsForIp(ip_address)
+            if (last7Attempts?.filter(e => e.success === false)?.length >= IP_BASED_BLOCKING_LIMIT) {
+                const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) // block IP 1 min
+                await addBlockedIp(ip_address, expirationTimeIPBlocking, defaultUser.user_id)
+            }
 
             // redis rate blocking documenation before returning
             await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
@@ -168,6 +182,13 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
                     console.error("Failed to send account lock email:", error)
                 }
 
+                // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
+                const last7Attempts = await getLastSevenAttemptsForIp(ip_address)
+                if (last7Attempts?.filter(e => e.success === false)?.length >= IP_BASED_BLOCKING_LIMIT) {
+                    const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) // block IP 1 min
+                    await addBlockedIp(ip_address, expirationTimeIPBlocking, oneUser.user_id)
+                }
+
                 // redis rate blocking documenation before returning
                 await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
 
@@ -187,9 +208,9 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
 
             // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
-            const allFailedAttempts = await getAllFailedAttemptsForIp(ip_address)
-            if (allFailedAttempts.length >= IP_BASED_BLOCKING_LIMIT) {
-                const expirationTimeIPBlocking = new Date(Date.now() + ONE_MINUTES_IN_MS) // block IP 1 min
+            const last7Attempts = await getLastSevenAttemptsForIp(ip_address)
+            if (last7Attempts?.filter(e => e.success === false)?.length >= IP_BASED_BLOCKING_LIMIT) {
+                const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) // block IP 1 min
                 await addBlockedIp(ip_address, expirationTimeIPBlocking, oneUser.user_id)
             }
 
@@ -349,7 +370,7 @@ users.put("/:user_id/password-reset",
                 })
             }
         } catch (error) {
-            console.error(`Error in password reset route: ${error}`);
+            console.error(`Error in password reset route: ${error}`)
             res.status(500).json({ error: `${error}; Internal server error while resetting password.` })
         }
     })

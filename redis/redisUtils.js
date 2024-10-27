@@ -1,5 +1,5 @@
 
-const RATE_IN_SECONDS = 60
+const RATE_IN_SECONDS = 8
 const incrementRedisKeys = async (redisClient, ipKey, deviceKey) => {
     try {
         await redisClient.incr(ipKey)
@@ -12,7 +12,7 @@ const incrementRedisKeys = async (redisClient, ipKey, deviceKey) => {
 }
 
 const THRESHOLD_COUNT = 5
-const BLOCKED_ACCESS_TIME_IN_SECONDS = 45
+const BLOCKED_ACCESS_TIME_IN_SECONDS = 30
 async function checkAndBlockIfLimitExceeded(redisClient, redisKeyIp, redisKeyDevice, blockedKeyIp, blockedKeyDevice) {
     try {
         const ipAttempts = await redisClient.get(redisKeyIp)
