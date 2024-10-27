@@ -38,11 +38,12 @@ const { isIpBlocked, addBlockedIp, getAllFailedAttemptsForIp } = require("../que
 
 const transporter = require('../email/emailTransporter.js')
 const createMailOptions = require("../email/mailOptions.js")
-const { incrementRedisKeys } = require('../redis/redisUtils')
+const { incrementRedisKeys, checkAndBlockIfLimitExceeded } = require('../redis/redisUtils')
 
-const THIRTY_MINUTES_IN_MS = 30 * 60 * 1000
-const FORTY_FIVE_MINUTES_IN_MS = 45 * 60 * 1000
-const OTP_EXPIRATION_MS = 3 * 60 * 1000 // 3 minutes
+const THIRTY_SECONDS_IN_MS = 30 * 1000
+const ONE_MINUTES_IN_MS = 1 * 60 * 1000
+const IP_BASED_BLOCKING_LIMIT = 10
+const OTP_EXPIRATION_MS = 1 * 60 * 1000 // 1 minutes
 const MAX_FAILED_ATTEMPTS = 3
 
 const users = express.Router()
@@ -72,7 +73,7 @@ users.post("/login", checkEmailProvided, checkPasswordProvided, async (req, res)
                 username: oneUser.username
             },
             JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '10m' }
         );
 
         oneUser.password = "***************"
@@ -90,6 +91,8 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         const device_fingerprint = req.headers['user-agent'] || "unknown"
         const redisKeyIp = `login_attempts:ip:${ip_address}`
         const redisKeyDevice = `login_attempts:device:${device_fingerprint}`
+        const blockedKeyIp = `blocked:ip:${ip_address}`
+        const blockedKeyDevice = `blocked:device:${device_fingerprint}`
 
         // check if IP or device is already blocked by Redis (rate blocking)
         let ipBlockedByRedis, deviceBlockedByRedis
@@ -104,15 +107,18 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             const blockedUntil = parseInt(ipBlockedByRedis || deviceBlockedByRedis)
 
             if (isNaN(blockedUntil))
-                return res.status(500).json({ error: "An error occurred while verifying access. Please try again later." });
+                return res.status(500).json({ error: "An error occurred while verifying access. Please try again later." })
 
-            const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000))
+            const remainingTime = blockedUntil - Date.now()
+            const remainingMinutes = Math.floor(remainingTime / (60 * 1000))
+            const remainingSeconds = Math.ceil((remainingTime % (60 * 1000)) / 1000)
             return res.status(403).json({
-                error: `Your IP or device is blocked due to multiple failed login attempts. Please try again after ${remainingMinutes} minutes.`
+                error: `Your IP or device is blocked due to rate limits. Please try again after ${remainingMinutes} `
+                    + `minutes and ${remainingSeconds} seconds.`
             })
         }
 
-        // ip based blocking after 5 failed logins - (different/multiple user accounts used)
+        // ip based blocking after 10 failed logins - (different/multiple user accounts used)
         // not handled/maintained by redis
         const ipBlockedInfo = await isIpBlocked(ip_address)
         if (ipBlockedInfo) {
@@ -127,6 +133,9 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
 
             // redis rate blocking documenation before returning
             await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
+
+            // block ip and/or device if rate limit has been exceeded
+            await checkAndBlockIfLimitExceeded(redisClient, redisKeyIp, redisKeyDevice, blockedKeyIp, blockedKeyDevice)
 
             return res.status(404).json({ error: `User with ${req.body.email} email not found!` })
         }
@@ -145,11 +154,11 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             const lastAttemptTime = new Date(failedAttempts[0].attempt_time)
             const currentTime = new Date()
 
-            if (currentTime - lastAttemptTime < THIRTY_MINUTES_IN_MS) {
+            if (currentTime - lastAttemptTime < THIRTY_SECONDS_IN_MS) {
                 await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
                 const mailOptions = createMailOptions(oneUser.email, "Account Locked Due to Multiple Failed Login Attempts",
                     "Your account has been locked due to multiple failed login " +
-                    "attempts. Login access will be restored after 30 minutes. If this " +
+                    "attempts. Login access will be restored after 30 seconds. If this " +
                     "wasn't you, please contact support immediately."
                 )
 
@@ -162,6 +171,9 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
                 // redis rate blocking documenation before returning
                 await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
 
+                // block ip and/or device if rate limit has been exceeded
+                await checkAndBlockIfLimitExceeded(redisClient, redisKeyIp, redisKeyDevice, blockedKeyIp, blockedKeyDevice)
+
                 return res.status(403).json({
                     error: "Account locked due to multiple " +
                         "failed login attempts. Please try again later."
@@ -170,21 +182,24 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         }
 
 
-        const isMatch = await bcrypt.compare(req.body.password, oneUser.password);
+        const isMatch = await bcrypt.compare(req.body.password, oneUser.password)
         if (!isMatch) {
             await createLoginAttempt(oneUser.user_id, ip_address, false, device_fingerprint)
 
             // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
             const allFailedAttempts = await getAllFailedAttemptsForIp(ip_address)
-            if (allFailedAttempts.length >= 5) {
-                const expirationTimeIPBlocking = new Date(Date.now() + FORTY_FIVE_MINUTES_IN_MS) // block IP 45 min
+            if (allFailedAttempts.length >= IP_BASED_BLOCKING_LIMIT) {
+                const expirationTimeIPBlocking = new Date(Date.now() + ONE_MINUTES_IN_MS) // block IP 1 min
                 await addBlockedIp(ip_address, expirationTimeIPBlocking, oneUser.user_id)
             }
 
             // redis rate blocking documenation before returning
             await incrementRedisKeys(redisClient, redisKeyIp, redisKeyDevice)
 
-            const remainingAttempts = MAX_FAILED_ATTEMPTS - (failedAttempts.length + 1)
+            // block ip and/or device if rate limit has been exceeded
+            await checkAndBlockIfLimitExceeded(redisClient, redisKeyIp, redisKeyDevice, blockedKeyIp, blockedKeyDevice)
+
+            const remainingAttempts = MAX_FAILED_ATTEMPTS - (failedAttempts.length)
             return res.status(400).json({
                 error: "Incorrect email and/or password",
                 status: "Login Failure",
@@ -196,7 +211,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         // 6 digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString()
         const hashedOtp = await bcrypt.hash(otp, 10)
-        // one time pwd valid for 3 min
+        // one time pwd valid for 1 min
         const expirationTimeForOTP = new Date(Date.now() + OTP_EXPIRATION_MS)
 
         await updateUserMfaOtp(oneUser.user_id, hashedOtp, expirationTimeForOTP)
@@ -223,7 +238,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
         }
 
         const mailOptions = createMailOptions(oneUser.email, "Your OTP for Login",
-            `Your one-time password (OTP) is: ${otp}. It will expire in 3 minutes.`
+            `Your one-time password (OTP) is: ${otp}. It will expire in 1 minutes.`
         )
         // mail for OTP
         try {
@@ -271,7 +286,7 @@ users.post("/", checkUsernameProvided,
                         username: createdUser.username
                     },
                     JWT_SECRET,
-                    { expiresIn: '5m' }
+                    { expiresIn: '10m' }
                 )
 
                 createdUser.password = "***************"

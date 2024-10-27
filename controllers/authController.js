@@ -27,7 +27,7 @@ auth.post("/forgot-password", async (req, res) => {
         const resetToken = Math.random().toString(36).substring(2)
         const hashedToken = await bcrypt.hash(resetToken, 10)
 
-        const expirationTime = new Date(Date.now() + 3 * 60 * 1000) // 3 min
+        const expirationTime = new Date(Date.now() + 2 * 60 * 1000) // 2 min
         await updateUserResetToken(user.user_id, hashedToken, expirationTime)
 
         const transporter = nodemailer.createTransport({
@@ -43,7 +43,7 @@ auth.post("/forgot-password", async (req, res) => {
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: "Password Reset Request",
-            text: `You requested a password reset. Click on the link to reset your password: ${resetLink}. This link is valid for 3 minutes.`,
+            text: `You requested a password reset. Click on the link to reset your password: ${resetLink}. This link is valid for 2 minutes.`,
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
@@ -100,7 +100,7 @@ auth.post("/verify-otp", async (req, res) => {
                 username: oneUser.username
             },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '10m' }
         )
 
         oneUser.password = "***************"
