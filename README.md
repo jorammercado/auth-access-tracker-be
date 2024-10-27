@@ -126,7 +126,7 @@ Overall, this structure enhances scalability, security, and makes the system mor
    EMAIL_USER=
    EMAIL_PASS=
    CLIENT_URL=http://localhost:5173
-   REDIS_URL=
+   REDIS_URL=redis://
    REDIS_PASSWORD=
    ```
    > **Note:** To obtain the `REDIS_URL` and `REDIS_PASSWORD`, you need to set up an account with [Redis Cloud](https://cloud.redis.io/) and create an instance.
@@ -139,6 +139,7 @@ Overall, this structure enhances scalability, security, and makes the system mor
 4. Setup the PostgreSQL database:
    ```sh
    npm run db_schema
+   npm run db_seed
    ```
 
 4. Run the server:
