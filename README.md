@@ -93,13 +93,13 @@ Overall, this structure enhances scalability, security, and makes the system mor
 
 - **Email Verification**: After entering their email, a message informs the user that, if an account is associated with this email, a reset link has been sent.
 
-- **Reset Link with Expiration**: The reset link contains a token and expires in **3 minutes**.
+- **Reset Link with Expiration**: The reset link contains a token and expires in **2 minutes**.
 
 - **Password Reset Page**: By clicking on the link in their email, users are directed to a password reset page where they can enter a new password.
 
 - **Successful Reset**: Once the password is updated, users are redirected to the login page to access their account with the new credentials.
 
-- **Account Lockout**: Users who enter incorrect credentials **three consecutive times** will be locked out, even if they later enter the correct email-password pair. This lockout is automatically lifted after **30 minutes**, and the user is notified by email that their account has been temporarily locked due to multiple failed attempts.
+- **Account Lockout**: Users who enter incorrect credentials **three consecutive times** will be locked out, even if they later enter the correct email-password pair. This lockout is automatically lifted after **30 seconds**, and the user is notified by email that their account has been temporarily locked due to multiple failed attempts.
 
 
 ## Installation and Setup
