@@ -26,21 +26,21 @@ This repository contains the backend for the "User Authentication and Access Tra
 [Live Backend Server](https://red-canary-takehome-be.onrender.com/) 
 
 ## GitHub Repositories
-- [FrontEnd](https://github.com/jorammercado/red-canary-takehome-fe)
-- [BackEnd](https://github.com/jorammercado/red-canary-takehome-be)
+- [Frontend - red-canary-takehome-fe](https://github.com/jorammercado/red-canary-takehome-fe)
+- [Backend  - red-canary-takehome-be](https://github.com/jorammercado/red-canary-takehome-be)
 
 ## Features
 
 ### User Authentication
 - **Sign-Up:** Allows users to create new accounts with data validation to ensure correctness.
 
-- **Sign-In:**  Issues JWT tokens for successful user authentication, with a session limit of 1 hour. 
+- **Sign-In:**  Issues JWT tokens for successful user authentication, with a session limit of 10 minutes (for testing and debugging purposes). 
 
 - **Password Management:** Provides secure password reset and update features via a reset email link, which includes a time limit and password re-verification for added security, respectively. 
 
-- **Rate Limiting:** Protects against brute-force attacks by limiting login attempts. Uses Redis (quick access to non-persistent RAM memory) to track IP addresses and device fingerprints.
-  - The rate limiting blocks an IP address or device fingerprint if **5 failed login attempts** occur within a specified timeframe (e.g., **1 minute**).
-  - Once blocked, the IP or device remains blocked for **10 minutes**, times chosen for development and debugging purposes.
+- **Rate Limiting:** Protects against brute-force attacks by limiting login attempts. Uses Redis (for quick access to non-persistent RAM memory) to track IP addresses and device fingerprints.
+  - The rate limiting blocks an IP address or device fingerprint if **5 failed login attempts** occur within a specified timeframe (e.g., **8 seconds**).
+  - Once blocked, the IP or device remains blocked for **30 seconds**, times chosen for development and debugging purposes.
 
 ### Database Integration
 - **PostgreSQL** is used to store user data and track activity.
@@ -66,7 +66,7 @@ Overall, this structure enhances scalability, security, and makes the system mor
 
 - Block users after **three consecutive failed login attempts**.
 
-- **IP-based blocking** is implemented to prevent users from bypassing blocks by switching accounts (distinct from rate limiting). This ensures even if users switch accounts, their IP remains blocked.
+- **IP-based blocking** prevents users from bypassing blocks by switching accounts, distinct from rate limiting. This mechanism ensures that even if users switch accounts, their IP remains blocked. The block is triggered after 7 consecutive failed login attempts from the same IP address. Access is restored after 30 seconds for a single attempt, and the blocking system resets after a successful login.
 
 ### New Browser Login Notification 
 - **Device Fingerprinting / IP Tracking**: Detect login attempts from new devices or browsers using IP addresses and device fingerprints.
