@@ -5,11 +5,10 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const redisClient = require('./redis/redisClient')
-
 // route to test redis connection
 app.get('/redis-test', async (req, res) => {
     try {
+        const redisClient = require('./redis/redisClient')
         await redisClient.set('testKey-value-sent', 'Hello from Redis!')
         const value = await redisClient.get('testKey-value-sent')
         res.send(`Redis response: ${value}`)

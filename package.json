@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "start": "node server.js",
     "db_schema": "psql -U postgres -f db/schema.sql",
     "db_seed": "psql -U postgres -f db/seed.sql"
@@ -23,5 +23,10 @@
     "nodemon": "^3.1.7",
     "pg-promise": "^11.10.1",
     "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "redis-mock": "^0.56.3",
+    "supertest": "^7.0.0"
   }
 }
