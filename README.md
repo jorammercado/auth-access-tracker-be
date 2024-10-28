@@ -147,6 +147,12 @@ Overall, this structure enhances scalability, security, and makes the system mor
    npm start
    ```
 
+## Testing 
+Testing is crucial for ensuring the reliability and security of this project. In the initial stage of development, comprehensive manual testing was conducted. To further enhance robustness, security, and development speed, automated testing will be implemented in phases, beginning with unit tests, followed by integration and end-to-end testing.
+
+**Unit Testing**: Some unit tests have been implemented as a starting point. More work is needed to achieve comprehensive coverage.
+
+
 ## License
 This project is licensed under the MIT License. See the [LICENSE](https://opensource.org/license/mit) file for details.
 

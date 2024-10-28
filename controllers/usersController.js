@@ -141,7 +141,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
             const last7Attempts = await getLastSevenAttemptsForIp(ip_address)
             if (last7Attempts?.filter(e => e.success === false)?.length >= IP_BASED_BLOCKING_LIMIT) {
-                const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) // block IP 1 min
+                const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) 
                 await addBlockedIp(ip_address, expirationTimeIPBlocking, defaultUser.user_id)
             }
 
@@ -185,7 +185,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
                 // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
                 const last7Attempts = await getLastSevenAttemptsForIp(ip_address)
                 if (last7Attempts?.filter(e => e.success === false)?.length >= IP_BASED_BLOCKING_LIMIT) {
-                    const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) // block IP 1 min
+                    const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) 
                     await addBlockedIp(ip_address, expirationTimeIPBlocking, oneUser.user_id)
                 }
 
@@ -210,7 +210,7 @@ users.post("/login-initiate", checkEmailProvided, checkPasswordProvided, async (
             // ip based blocking documentation - not rate blocking - (if different/multiple user accounts used)
             const last7Attempts = await getLastSevenAttemptsForIp(ip_address)
             if (last7Attempts?.filter(e => e.success === false)?.length >= IP_BASED_BLOCKING_LIMIT) {
-                const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) // block IP 1 min
+                const expirationTimeIPBlocking = new Date(Date.now() + THIRTY_SECONDS_IN_MS) 
                 await addBlockedIp(ip_address, expirationTimeIPBlocking, oneUser.user_id)
             }
 
