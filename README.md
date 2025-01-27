@@ -1,10 +1,8 @@
 # User Authentication and Access Tracking System Backend
 
-![Red Canary Logo](./red-canary-logo.png)
-
 ## Project Overview
 
-This repository contains the backend for the "User Authentication and Access Tracking System with Database Integration and Email Alerts" project, developed for the Red Canary Software Engineer Take-Home Exam. Built with Express.js, the backend offers features like user sign-up, sign-in, multi-factor authentication, rate limiting with Redis, JWT tokens, account lock functionality, and email notifications. It integrates with PostgreSQL to manage user data, track login attempts, and ensure secure access.
+The backend Repo for the "User Authentication and Access Tracking System" with database integration and email alerts project. Built with Express.js, the backend offers features like user sign-up, sign-in, multi-factor authentication, rate limiting with Redis, JWT tokens, account lock functionality, and email notifications. It integrates with PostgreSQL to manage user data, track login attempts, and ensure secure access.
 
 ### Technologies Used
 
@@ -26,8 +24,8 @@ This repository contains the backend for the "User Authentication and Access Tra
 [Live Backend Server](https://red-canary-takehome-be.onrender.com/) 
 
 ## GitHub Repositories
-- [Frontend - red-canary-takehome-fe](https://github.com/jorammercado/red-canary-takehome-fe)
-- [Backend  - red-canary-takehome-be](https://github.com/jorammercado/red-canary-takehome-be)
+- [frontend: auth-access-tracker-fe](https://github.com/JoramAMercado/auth-access-tracker-fe)
+- [backend: auth-access-tracker-be](https://github.com/JoramAMercado/auth-access-tracker-be)
 
 ## Features
 
@@ -106,8 +104,8 @@ Overall, this structure enhances scalability, security, and makes the system mor
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-username/red-canary-takehome-be.git
-   cd red-canary-takehome-be
+   git clone https://github.com/your-username/auth-access-tracker-be.git
+   cd auth-access-tracker-be
    ```
 
 2. Install dependencies:
@@ -120,7 +118,7 @@ Overall, this structure enhances scalability, security, and makes the system mor
    PORT=8899
    PG_HOST=localhost
    PG_PORT=5432
-   PG_DATABASE=redcanary_dev
+   PG_DATABASE=auth_access_tracker_dev
    PG_USER=postgres
    JWT_SECRET=
    EMAIL_USER=

@@ -19,7 +19,7 @@ app.get('/redis-test', async (req, res) => {
 })
 
 app.get("/", (req, res) => {
-    res.send("Welcome to Red Canary Take Home Test.")
+    res.send("Welcome to the User Authentication and Access Tracking System.")
 })
 
 const usersController = require("./controllers/usersController")

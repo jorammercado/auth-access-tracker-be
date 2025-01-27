@@ -12,7 +12,7 @@ describe('App Routes (using mocked Redis)', () => {
     test('GET / should return welcome message', async () => {
         const response = await request(app).get('/')
         expect(response.statusCode).toBe(200)
-        expect(response.text).toBe('Welcome to Red Canary Take Home Test.')
+        expect(response.text).toBe('Welcome to the User Authentication and Access Tracking System.')
     })
 
     test('GET /unknown should return 404 for non-existing routes', async () => {

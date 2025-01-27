@@ -1,8 +1,8 @@
 
-DROP DATABASE IF EXISTS redcanary_dev;
-CREATE DATABASE redcanary_dev;
+DROP DATABASE IF EXISTS auth_access_tracker_dev;
+CREATE DATABASE auth_access_tracker_dev;
 
-\c redcanary_dev;
+\c auth_access_tracker_dev;
 
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,

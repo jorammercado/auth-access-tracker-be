@@ -1,5 +1,5 @@
 {
-  "name": "red-canary-takehome-backend",
+  "name": "auth-access-tracker-be",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
