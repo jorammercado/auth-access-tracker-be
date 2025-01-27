@@ -21,7 +21,7 @@ The backend Repo for the "User Authentication and Access Tracking System" with d
 - [Contact](#contact)
 
 ## Deployed Server Access
-[Live Backend Server](https://red-canary-takehome-be.onrender.com/) 
+[Live Backend Server](https://auth-access-tracker-be.onrender.com/) 
 
 ## GitHub Repositories
 - [frontend: auth-access-tracker-fe](https://github.com/JoramAMercado/auth-access-tracker-fe)
