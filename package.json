@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.15",
     "nodemon": "^3.1.7",
+    "path-to-regexp": "^0.1.12",
     "pg-promise": "^11.10.1",
     "redis": "^4.7.0"
   },

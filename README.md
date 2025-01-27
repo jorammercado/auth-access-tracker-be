@@ -37,7 +37,7 @@ The backend Repo for the "User Authentication and Access Tracking System" with d
 - **Password Management:** Provides secure password reset and update features via a reset email link, which includes a time limit and password re-verification for added security, respectively. 
 
 - **Rate Limiting:** Protects against brute-force attacks by limiting login attempts. Uses Redis (for quick access to non-persistent RAM memory) to track IP addresses and device fingerprints.
-  - The rate limiting blocks an IP address or device fingerprint if **5 failed login attempts** occur within a specified timeframe (e.g., **8 seconds**).
+  - The rate limiting blocks an IP address or device fingerprint if **5 failed login attempts** occur within a specified time frame (e.g., **8 seconds**).
   - Once blocked, the IP or device remains blocked for **30 seconds**, times chosen for development and debugging purposes.
 
 ### Database Integration
@@ -157,4 +157,4 @@ This project is licensed under the MIT License. See the [LICENSE](https://openso
 ## Contact
 For any inquiries or feedback, please contact:
 
-- Joram Mercado: [GitHub](https://github.com/jorammercado), [LinkedIn](https://www.linkedin.com/in/jorammercado)
+- Joram Mercado: [GitHub](https://github.com/joramamercado), [LinkedIn](https://www.linkedin.com/in/JoramAMercado)
