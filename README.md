@@ -2,99 +2,102 @@
 
 ## Project Overview
 
-This repository contains the backend for the **User Authentication and Access Tracking System with Database Integration and Email Alerts** project. Built with Express.js, the backend provides robust user authentication, multi-factor authentication (MFA), JWT-based session management, account lockout functionality, and email notifications. It integrates with PostgreSQL to manage user data, log login attempts, and enforce secure access control.
+This repository contains the backend for the **User Authentication and Access Tracking System with Database Integration and Email Alerts** project. Built with **Express.js**, the backend provides robust user authentication, multi-factor authentication (MFA), JWT-based session management, account lockout functionality, and email notifications. It integrates with **PostgreSQL** to manage user data, log login attempts, and enforce secure access control.
 
-### Technologies Used
+### 🚀 Technologies Used
 
-- **Node.js** (Express) - Server-side API development
-- **PostgreSQL** - Persistent storage for user credentials, login activity, and blocklists
-- **JWT (JSON Web Tokens)** - Session authentication using signed tokens
-- **bcryptjs** - Password hashing and credential validation
-- **Redis** - In-memory store for rate limiting and temporary blocks
-- **Nodemailer** - Email service integration
+* **Node.js** (Express) – Server-side API development
+* **PostgreSQL** – Persistent storage for user credentials, login activity, and blocklists
+* **JWT (JSON Web Tokens)** – Session authentication using signed tokens
+* **bcryptjs** – Password hashing and credential validation
+* **Redis** – In-memory store for rate limiting and temporary blocks
+* **Nodemailer** – Email service integration
 
-## Contents
+## 📑 Contents
 
-- [Deployed Server Access](#deployed-server-access)
-- [GitHub Repositories](#github-repositories)
-- [Features](#features)
-- [Installation and Setup](#installation-and-setup)
-- [Testing](#testing)
-- [License](#license)
-- [Contact](#contact)
+* [Deployed Server Access](#deployed-server-access)
+* [GitHub Repositories](#github-repositories)
+* [Features](#features)
+* [Installation and Setup](#installation-and-setup)
+* [Testing](#testing)
+* [License](#license)
+* [Contact](#contact)
 
-## Deployed Server Access
+## 🌐 Deployed Server Access
 
-- **Live Backend Server**: [https://auth-access-tracker-be.onrender.com/](https://auth-access-tracker-be.onrender.com/)
+* **Live Backend Server**: [https://auth-access-tracker-be.onrender.com/](https://auth-access-tracker-be.onrender.com/)
 
-## GitHub Repositories
+## 💻 GitHub Repositories
 
-- Frontend: [auth-access-tracker-fe](https://github.com/jorammercado/auth-access-tracker-fe)
-- Backend: [auth-access-tracker-be](https://github.com/jorammercado/auth-access-tracker-be)
+* **Frontend**: [auth-access-tracker-fe](https://github.com/jorammercado/auth-access-tracker-fe)
+* **Backend**: [auth-access-tracker-be](https://github.com/jorammercado/auth-access-tracker-be)
 
-## Features
+## 🔐 Features
 
 ### User Authentication
 
-- **Sign-Up**: Allows users to register new accounts with input validation. Passwords are hashed using bcrypt.
-- **Sign-In**: Credentials are validated using bcrypt. Upon successful verification, a JWT token is issued for session-based access.
-- **Password Management**:
-  - **Forgot Password Flow**: Uses a tokenized reset link sent via email. The link directs users to a page where they can submit a new password. The token and time window to update the password on this page expires after 2 minutes.
-  - **Password Update (While Logged In)**: Requires both a valid JWT token and revalidation of the user's current password via bcrypt.
-- **Authentication**:
-  - **JWT-based**: Used to authenticate protected routes' requests after login (e.g., profile update, account deletion).
-  - **bcrypt-based**: Used when validating credentials, such as login, password change, or OTP verification.
+* **Sign-Up**: Users can register new accounts with input validation. Passwords are hashed using bcrypt.
+* **Sign-In**: Credentials are validated using bcrypt. Upon successful verification, a JWT token is issued for session-based access.
+* **Password Management**:
+
+  * **Forgot Password Flow**: Tokenized reset link sent via email. The link directs users to a reset form and expires after 2 minutes.
+  * **Password Update (While Logged In)**: Requires a valid JWT token and revalidation of the current password using bcrypt.
+* **Authentication**:
+
+  * **JWT-based**: Authenticates requests to protected routes (e.g., profile updates, account deletion).
+  * **bcrypt-based**: Used during login, password changes, and OTP verification.
 
 ### Database Integration
 
-**PostgreSQL** manages structured data for user accounts and activity logs. Key tables:
+**PostgreSQL** manages structured data for user accounts and activity logs. Key tables include:
 
-- **Users**: Stores credentials, profile info, and MFA settings.
-- **Login Attempts**: Logs each attempt with timestamp, success flag, IP, and fingerprint.
-- **Login History**: Records successful logins with device/browser info.
-- **Blocked IPs**: Tracks IPs temporarily blocked due to repeated failures.
+* **Users**: Stores credentials, profile info, and MFA settings.
+* **Login Attempts**: Logs attempts with timestamps, success flags, IPs, and fingerprints.
+* **Login History**: Records successful logins with device/browser info.
+* **Blocked IPs**: Tracks IPs temporarily blocked after repeated failures.
 
 #### Rationale
 
-This schema supports **separation of concerns**, making it easier to audit, scale, and extend while minimizing security risks.
+This schema follows a **separation of concerns** approach, simplifying auditing, scaling, and security maintenance.
 
 ### Login Protection and Blocking Mechanisms
 
 This system uses layered safeguards to prevent unauthorized access:
 
-- **User-Based Lockout**: Locks individual accounts after **3 consecutive failed login attempts**. An email alert is sent to notify the user.
-- **IP-Based Blocking**: Prevents circumvention by switching usernames. Blocks any and all accounts from logging in after **7 consecutive failed attempts** from that same IP—regardless of time frame.
-- **Rate Limiting (Redis)**: Enforces a cap of **5 failed attempts within 8 seconds** based on IP and device fingerprint. Redis ensures fast enforcement and temporary access blocks.
+* **User-Based Lockout**: Locks an account after **3 consecutive failed login attempts**, and sends an alert email.
+* **IP-Based Blocking**: Blocks all login attempts from the same IP after **7 consecutive failed attempts**.
+* **Rate Limiting (Redis)**: Restricts **5 failed attempts within 8 seconds** based on IP and device fingerprint.
 
-In all three cases, the account, IP, or device remains blocked for **30 seconds**—a duration set for development and debugging purposes.
+⏱ In all three cases, the block duration is set to **30 seconds** for development and debugging purposes.
 
 ### New Browser Login Notification
 
-- Detects new device/browser logins using fingerprinting and IP tracking.
-- Sends an **email alert** with relevant login metadata to notify users of unrecognized access.
+* Uses fingerprinting and IP tracking to detect unfamiliar logins.
+* Sends an **email alert** with metadata when a new browser/device logs in.
 
 ### Protected API Access
 
-- Middleware enforces JWT token verification for all protected endpoints. If the token is invalid or expired, access is denied.
+* Middleware ensures that JWT tokens are valid and active for accessing protected endpoints.
 
 ### Multi-Factor Authentication (MFA)
 
-- Sends a **6-digit OTP via email** after successful login with email and password.
-  - OTP is hashed using bcrypt and expires after **3 minutes**.
-  - Verification requires a correct OTP match and valid expiration timestamp.
+* After login, users receive a **6-digit OTP via email**.
+
+  * OTP is hashed using bcrypt and expires after **3 minutes**.
+  * Validation requires a match and a valid expiration timestamp.
 
 ### Account Unlock and Password Reset Automation
 
 #### Forgot Password & Reset Flow
 
-- **Initiate Reset**: Users who forget their password can submit their email via a public form.
-- **Tokenized Email Link**: A reset token is generated, hashed, and sent to the user's email. It expires in **2 minutes**.
-- **Anonymous Message**: If no matching account is found, a generic success message is returned to avoid information disclosure.
-- **Reset Page**: Users follow the emailed link to access a form.
-- **Password Update**: If the token is correctly verified, the new password is validated, hashed with bcrypt, and stored securely.
-- **Redirect**: Upon success, users are redirected to the login page.
+* **Initiate Reset**: Users submit their email via a public form.
+* **Tokenized Email Link**: A hashed reset token is emailed and expires in **2 minutes**.
+* **Anonymous Message**: Generic success messages prevent disclosure of user existence.
+* **Reset Page**: Users access a password update form via the link.
+* **Password Update**: The token is verified, new password validated and hashed with bcrypt.
+* **Redirect**: Successful resets redirect to the login page.
 
-## Installation and Setup
+## ⚙️ Installation and Setup
 
 1. **Clone the repository**:
 
@@ -146,22 +149,20 @@ In all three cases, the account, IP, or device remains blocked for **30 seconds*
    npm start
    ```
 
-## Testing
+## 🧪 Testing
 
-Basic unit tests are included and can be run with:
+**Preliminary Testing Exposure**: Basic unit tests using `supertest` were implemented to validate core routing logic and server responses.
 
 ```sh
 npm test
 ```
 
-Manual testing was conducted during development. Additional automated testing (integration and end-to-end) is planned for future updates.
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](https://opensource.org/license/mit) file for more details.
 
-## Contact
+## 📬 Contact
 
 For any inquiries or feedback, please contact:
 
-- Joram Mercado: [GitHub](https://github.com/jorammercado), [LinkedIn](https://www.linkedin.com/in/jorammercado)
+* **Joram Mercado**: [GitHub](https://github.com/jorammercado) | [LinkedIn](https://www.linkedin.com/in/jorammercado)
